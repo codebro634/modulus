@@ -112,6 +112,7 @@ def concat_efeat_dgl(
     efeat: Tensor,
     nfeat: Union[Tensor, Tuple[torch.Tensor, torch.Tensor]],
     graph: DGLGraph,
+    multi_hop: dict = None,
 ) -> Tensor:
     """Concatenates edge features with source and destination node features.
     Use for homogeneous graphs.
@@ -142,14 +143,43 @@ def concat_efeat_dgl(
     with graph.local_scope():
         graph.ndata["x"] = nfeat
         graph.edata["x"] = efeat
-        graph.apply_edges(concat_message_function)
-        return graph.edata["cat_feat"]
+
+        if multi_hop is None:
+            graph.apply_edges(concat_message_function)
+            return graph.edata["cat_feat"]
+        else:
+            graph.ndata["et"], graph.ndata["vt"] = multi_hop_agg(efeat, nfeat, graph, "sum")
+
+            def msg_func(edges):
+
+                if multi_hop["agg"] == "concat":
+                    cat_feat = torch.cat((edges.data["x"], edges.src["x"], edges.dst["x"], edges.src["et"] - edges.data["x"],
+                                          edges.dst["et"] - edges.data["x"], edges.dst["vt"], edges.src["vt"]), dim=1)
+                elif multi_hop["agg"] == "concat_sum":
+                    mh_feat_edges = edges.src["et"] + edges.dst["et"] - 2 * edges.data["x"]
+                    mh_feat_vertices = edges.src["vt"] + edges.dst["vt"]
+                    cat_feat = torch.cat((edges.data["x"], edges.src["x"], edges.dst["x"], mh_feat_edges, mh_feat_vertices), dim=1)
+                elif multi_hop["agg"] == "sum":
+                    mh_feat_edges = edges.src["et"] + edges.dst["et"] - 2 * edges.data["x"]
+                    cat_feat = torch.cat((edges.data["x"] + multi_hop["weight"] * mh_feat_edges,
+                                          edges.src["x"] + multi_hop["weight"] * edges.src["vt"] ,
+                                          edges.dst["x"] + multi_hop["weight"] * edges.dst["vt"]), dim=1)
+                else:
+                    raise ValueError(f"multi_hop agg {multi_hop['agg']} not supported")
+
+                return {"cat_feat": cat_feat}
+
+            graph.apply_edges(msg_func)
+
+            return graph.edata["cat_feat"]
+
 
 
 def concat_efeat(
     efeat: Tensor,
     nfeat: Union[Tensor, Tuple[Tensor]],
     graph: Union[DGLGraph, CuGraphCSC],
+    multi_hop: dict = None,
 ) -> Tensor:
     """Concatenates edge features with source and destination node features.
     Use for homogeneous graphs.
@@ -200,7 +230,7 @@ def concat_efeat(
                     )
 
         else:
-            efeat = concat_efeat_dgl(efeat, nfeat, graph)
+            efeat = concat_efeat_dgl(efeat, nfeat, graph, multi_hop=multi_hop)
 
     else:
         src_feat, dst_feat = nfeat
@@ -332,10 +362,31 @@ def sum_efeat(
     return sum_efeat
 
 
+def multi_hop_agg(
+    efeat: Tensor, dst_nfeat: Tensor, graph: DGLGraph, aggregation: str
+) -> Tuple[Tensor, Tensor]:
+
+    with graph.local_scope():
+        graph.edata["x"] = efeat
+        graph.ndata["x"] = dst_nfeat
+
+        if aggregation == "sum":
+            graph.update_all(fn.copy_e("x", "me"), fn.sum("me", "e_dest"))
+            graph.update_all(fn.copy_u("x", "mv"), fn.sum("mv", "v_dest"))
+        elif aggregation == "mean":
+            graph.update_all(fn.copy_e("x", "me"), fn.mean("me", "e_dest"))
+            graph.update_all(fn.copy_u("x", "mv"), fn.mean("mv", "v_dest"))
+        else:
+            raise RuntimeError("Not a valid aggregation!") 
+
+        return graph.dstdata["e_dest"], graph.dstdata["v_dest"]
+
+
+
 @torch.jit.ignore()
 def agg_concat_dgl(
     efeat: Tensor, dst_nfeat: Tensor, graph: DGLGraph, aggregation: str
-) -> Tensor:
+) -> Union[Tensor|Tuple[Tensor]]:
     """Aggregates edge features and concatenates result with destination node features.
 
     Parameters

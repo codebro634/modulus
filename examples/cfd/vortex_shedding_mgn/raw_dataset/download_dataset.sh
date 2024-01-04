@@ -7,6 +7,6 @@ Bash script to download the meshgraphnet dataset from deepmind's repo.
 
 git clone https://github.com/deepmind/deepmind-research.git
 set -e
-DATASET_NAME="${1}"
+DATASET_NAME="cylinder_flow"
 OUTPUT_DIR="${DATASET_NAME}"
 sh deepmind-research/meshgraphnets/download_dataset.sh ${DATASET_NAME} ${OUTPUT_DIR}

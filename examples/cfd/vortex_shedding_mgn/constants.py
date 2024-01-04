@@ -36,6 +36,7 @@ class Constants(BaseModel):
     num_edge_features: int = 3
     ckpt_path: str = "checkpoints"
     ckpt_name: str = "model.pt"
+    multi_hop_edges: dict = {"agg": "sum", "weight": 0.5} #Possible keys: agg in {sum, concat, concat_sum} and weight of agg=sum
 
     # performance configs
     amp: bool = False

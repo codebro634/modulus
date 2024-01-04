@@ -18,40 +18,17 @@ Diffusion-Based Generative Models".
 """
 
 import importlib
-from dataclasses import dataclass
 from typing import List, Union
 
 import numpy as np
 import torch
 
 from modulus.models.diffusion import DhariwalUNet, SongUNet  # noqa: F401 for globals
-from modulus.models.meta import ModelMetaData
-from modulus.models.module import Module
 
 network_module = importlib.import_module("modulus.models.diffusion")
 
 
-@dataclass
-class VPPrecondMetaData(ModelMetaData):
-    """VPPrecond meta data"""
-
-    name: str = "VPPrecond"
-    # Optimization
-    jit: bool = False
-    cuda_graphs: bool = False
-    amp_cpu: bool = False
-    amp_gpu: bool = True
-    torch_fx: bool = False
-    # Data type
-    bf16: bool = False
-    # Inference
-    onnx: bool = False
-    # Physics informed
-    func_torch: bool = False
-    auto_grad: bool = False
-
-
-class VPPrecond(Module):
+class VPPrecond(torch.nn.Module):
     """
     Preconditioning corresponding to the variance preserving (VP) formulation.
 
@@ -98,7 +75,7 @@ class VPPrecond(Module):
         model_type: str = "SongUNet",
         **model_kwargs: dict,
     ):
-        super().__init__(meta=VPPrecondMetaData)
+        super().__init__()
         self.img_resolution = img_resolution
         self.img_channels = img_channels
         self.label_dim = label_dim
@@ -214,27 +191,7 @@ class VPPrecond(Module):
         return torch.as_tensor(sigma)
 
 
-@dataclass
-class VEPrecondMetaData(ModelMetaData):
-    """VEPrecond meta data"""
-
-    name: str = "VEPrecond"
-    # Optimization
-    jit: bool = False
-    cuda_graphs: bool = False
-    amp_cpu: bool = False
-    amp_gpu: bool = True
-    torch_fx: bool = False
-    # Data type
-    bf16: bool = False
-    # Inference
-    onnx: bool = False
-    # Physics informed
-    func_torch: bool = False
-    auto_grad: bool = False
-
-
-class VEPrecond(Module):
+class VEPrecond(torch.nn.Module):
     """
     Preconditioning corresponding to the variance exploding (VE) formulation.
 
@@ -275,7 +232,7 @@ class VEPrecond(Module):
         model_type: str = "SongUNet",
         **model_kwargs: dict,
     ):
-        super().__init__(meta=VEPrecondMetaData)
+        super().__init__()
         self.img_resolution = img_resolution
         self.img_channels = img_channels
         self.label_dim = label_dim
@@ -343,27 +300,7 @@ class VEPrecond(Module):
         return torch.as_tensor(sigma)
 
 
-@dataclass
-class iDDPMPrecondMetaData(ModelMetaData):
-    """iDDPMPrecond meta data"""
-
-    name: str = "iDDPMPrecond"
-    # Optimization
-    jit: bool = False
-    cuda_graphs: bool = False
-    amp_cpu: bool = False
-    amp_gpu: bool = True
-    torch_fx: bool = False
-    # Data type
-    bf16: bool = False
-    # Inference
-    onnx: bool = False
-    # Physics informed
-    func_torch: bool = False
-    auto_grad: bool = False
-
-
-class iDDPMPrecond(Module):
+class iDDPMPrecond(torch.nn.Module):
     """
     Preconditioning corresponding to the improved DDPM (iDDPM) formulation.
 
@@ -407,7 +344,7 @@ class iDDPMPrecond(Module):
         model_type="DhariwalUNet",
         **model_kwargs,
     ):
-        super().__init__(meta=iDDPMPrecondMetaData)
+        super().__init__()
         self.img_resolution = img_resolution
         self.img_channels = img_channels
         self.label_dim = label_dim
@@ -517,27 +454,7 @@ class iDDPMPrecond(Module):
         return result.reshape(sigma.shape).to(sigma.device)
 
 
-@dataclass
-class EDMPrecondMetaData(ModelMetaData):
-    """EDMPrecond meta data"""
-
-    name: str = "EDMPrecond"
-    # Optimization
-    jit: bool = False
-    cuda_graphs: bool = False
-    amp_cpu: bool = False
-    amp_gpu: bool = True
-    torch_fx: bool = False
-    # Data type
-    bf16: bool = False
-    # Inference
-    onnx: bool = False
-    # Physics informed
-    func_torch: bool = False
-    auto_grad: bool = False
-
-
-class EDMPrecond(Module):
+class EDMPrecond(torch.nn.Module):
     """
     Improved preconditioning proposed in the paper "Elucidating the Design Space of
     Diffusion-Based Generative Models" (EDM)
@@ -582,7 +499,7 @@ class EDMPrecond(Module):
         model_type="DhariwalUNet",
         **model_kwargs,
     ):
-        super().__init__(meta=EDMPrecondMetaData)
+        super().__init__()
         self.img_resolution = img_resolution
         self.img_channels = img_channels
 
@@ -654,27 +571,7 @@ class EDMPrecond(Module):
         return torch.as_tensor(sigma)
 
 
-@dataclass
-class EDMPrecondSRMetaData(ModelMetaData):
-    """EDMPrecondSR meta data"""
-
-    name: str = "EDMPrecondSR"
-    # Optimization
-    jit: bool = False
-    cuda_graphs: bool = False
-    amp_cpu: bool = False
-    amp_gpu: bool = True
-    torch_fx: bool = False
-    # Data type
-    bf16: bool = False
-    # Inference
-    onnx: bool = False
-    # Physics informed
-    func_torch: bool = False
-    auto_grad: bool = False
-
-
-class EDMPrecondSR(Module):
+class EDMPrecondSR(torch.nn.Module):
     """
     Improved preconditioning proposed in the paper "Elucidating the Design Space of
     Diffusion-Based Generative Models" (EDM) for super-resolution tasks
@@ -730,7 +627,7 @@ class EDMPrecondSR(Module):
         model_type="DhariwalUNet",
         **model_kwargs,
     ):
-        super().__init__(meta=EDMPrecondSRMetaData)
+        super().__init__()
         self.img_resolution = img_resolution
         self.img_channels = img_channels
         self.img_in_channels = img_in_channels

@@ -241,8 +241,17 @@ class MeshGraphEdgeMLPConcat(MeshGraphMLP):
         norm_type: str = "LayerNorm",
         bias: bool = True,
         recompute_activation: bool = False,
+        multi_hop: dict = None,
     ):
+
+        self.multi_hop = multi_hop
         cat_dim = efeat_dim + src_dim + dst_dim
+        if multi_hop is not None:
+            if multi_hop["agg"] == "concat":
+                cat_dim += 2 * (efeat_dim + dst_dim)
+            elif multi_hop["agg"] == "concat_sum":
+                cat_dim += efeat_dim + dst_dim
+
         super(MeshGraphEdgeMLPConcat, self).__init__(
             cat_dim,
             output_dim,
@@ -259,7 +268,7 @@ class MeshGraphEdgeMLPConcat(MeshGraphMLP):
         nfeat: Union[Tensor, Tuple[Tensor]],
         graph: Union[DGLGraph, CuGraphCSC],
     ) -> Tensor:
-        efeat = concat_efeat(efeat, nfeat, graph)
+        efeat = concat_efeat(efeat, nfeat, graph, multi_hop=self.multi_hop)
         efeat = self.model(efeat)
         return efeat
 

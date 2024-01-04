@@ -65,7 +65,7 @@ class MGNTrainer:
 
         # instantiate the model
         self.model = MeshGraphNet(
-            C.num_input_features, C.num_edge_features, C.num_output_features
+            C.num_input_features, C.num_edge_features, C.num_output_features, multi_hop_edges=C.multi_hop_edges
         )
         if C.jit:
             self.model = torch.jit.script(self.model).to(dist.device)

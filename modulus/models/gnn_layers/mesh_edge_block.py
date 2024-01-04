@@ -61,6 +61,7 @@ class MeshEdgeBlock(nn.Module):
         norm_type: str = "LayerNorm",
         do_concat_trick: bool = False,
         recompute_activation: bool = False,
+        multi_hop: dict = None,
     ):
         super().__init__()
 
@@ -76,6 +77,7 @@ class MeshEdgeBlock(nn.Module):
             activation_fn=activation_fn,
             norm_type=norm_type,
             recompute_activation=recompute_activation,
+            multi_hop=multi_hop,
         )
 
     @torch.jit.ignore()

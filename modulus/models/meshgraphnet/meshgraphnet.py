@@ -136,6 +136,7 @@ class MeshGraphNet(Module):
         aggregation: str = "sum",
         do_concat_trick: bool = False,
         num_processor_checkpoint_segments: int = 0,
+        multi_hop_edges: dict = None,
     ):
         super().__init__(meta=MetaData())
 
@@ -181,6 +182,7 @@ class MeshGraphNet(Module):
             activation_fn=activation_fn,
             do_concat_trick=do_concat_trick,
             num_processor_checkpoint_segments=num_processor_checkpoint_segments,
+            multi_hop_edges=multi_hop_edges,
         )
 
     def forward(
@@ -211,6 +213,7 @@ class MeshGraphNetProcessor(nn.Module):
         activation_fn: nn.Module = nn.ReLU(),
         do_concat_trick: bool = False,
         num_processor_checkpoint_segments: int = 0,
+        multi_hop_edges: dict = None,
     ):
         super().__init__()
         self.processor_size = processor_size
@@ -226,6 +229,7 @@ class MeshGraphNetProcessor(nn.Module):
             norm_type,
             do_concat_trick,
             False,
+            multi_hop_edges,
         )
         node_block_invars = (
             aggregation,
@@ -250,6 +254,7 @@ class MeshGraphNetProcessor(nn.Module):
         self.processor_layers = nn.ModuleList(layers)
         self.num_processor_layers = len(self.processor_layers)
         self.set_checkpoint_segments(self.num_processor_checkpoint_segments)
+
 
     def set_checkpoint_segments(self, checkpoint_segments: int):
         """
@@ -314,6 +319,30 @@ class MeshGraphNetProcessor(nn.Module):
             return edge_features, node_features
 
         return custom_forward
+
+    """
+    #Written by ChatGPT
+    def partition_graph(self, graph, num_nodes):
+        subgraphs = []
+        visited = set()
+
+        def dfs(node, subgraph):
+            subgraph.append(node)
+            visited.add(node)
+            neighbors = graph.successors(node).tolist() #undirected graph
+            for neighbor in neighbors:
+                if neighbor not in visited and len(subgraph) < num_nodes:
+                    dfs(neighbor, subgraph)
+
+        for node in graph.nodes().tolist():
+            if node not in visited:
+                subgraph = []
+                dfs(node, subgraph)
+                if subgraph:
+                    subgraphs.append(subgraph)
+
+        return subgraphs
+    """
 
     @torch.jit.unused
     def forward(
