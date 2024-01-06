@@ -64,7 +64,7 @@ class MGNRollout:
         else:
             self.model = self.model.to(self.device)
 
-        # enable train mode
+        # enable eval mode
         self.model.eval()
 
         # load checkpoint
@@ -77,10 +77,18 @@ class MGNRollout:
         self.var_identifier = {"u": 0, "v": 1, "p": 2}
 
     def predict(self):
-        self.pred, self.exact, self.faces, self.graphs = [], [], [], []
+        self.pred, self.exact, self.faces, self.graphs, self.pred_one_step = [], [], [], [], []
         stats = {
             key: value.to(self.device) for key, value in self.dataset.node_stats.items()
         }
+
+        """
+            Index 0 veloctiy, 1 pressure + veloctiy
+        """
+        mse = torch.nn.MSELoss()
+        mse_1_step, mse_50_step, mse_all_step = np.zeros(2), np.zeros(2), np.zeros(2)
+        num_steps, num_50_steps = 0, 0
+
         for i, (graph, cells, mask) in enumerate(self.dataloader):
             graph = graph.to(self.device)
             # denormalize data
@@ -101,13 +109,14 @@ class MGNRollout:
             # inference step
             invar = graph.ndata["x"].clone()
 
-            if i % (C.num_test_time_steps - 1) != 0:
+            if i % (C.num_test_time_steps - 1) != 0: #If = 0, then new graph starts
                 invar[:, 0:2] = self.pred[i - 1][:, 0:2].clone()
                 i += 1
             invar[:, 0:2] = self.dataset.normalize_node(
                 invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
             )
             pred_i = self.model(invar, graph.edata["x"], graph).detach()  # predict
+            pred_i_one_step = self.model(graph.ndata["x"].clone(), graph.edata["x"], graph).detach()
 
             # denormalize prediction
             pred_i[:, 0:2] = self.dataset.denormalize(
@@ -116,14 +125,25 @@ class MGNRollout:
             pred_i[:, 2] = self.dataset.denormalize(
                 pred_i[:, 2], stats["pressure_mean"], stats["pressure_std"]
             )
+            pred_i_one_step[:, 0:2] = self.dataset.denormalize(
+                pred_i_one_step[:, 0:2], stats["velocity_diff_mean"], stats["velocity_diff_std"]
+            )
+            pred_i_one_step[:, 2] = self.dataset.denormalize(
+                pred_i_one_step[:, 2], stats["pressure_mean"], stats["pressure_std"]
+            )
+
             invar[:, 0:2] = self.dataset.denormalize(
                 invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
             )
+
 
             # do not update the "wall_boundary" & "outflow" nodes
             mask = torch.cat((mask, mask), dim=-1).to(self.device)
             pred_i[:, 0:2] = torch.where(
                 mask, pred_i[:, 0:2], torch.zeros_like(pred_i[:, 0:2])
+            )
+            pred_i_one_step[:, 0:2] = torch.where(
+                mask, pred_i_one_step[:, 0:2], torch.zeros_like(pred_i_one_step[:, 0:2])
             )
 
             # integration
@@ -132,6 +152,13 @@ class MGNRollout:
                     ((pred_i[:, 0:2] + invar[:, 0:2]), pred_i[:, [2]]), dim=-1
                 ).cpu()
             )
+
+            self.pred_one_step.append(
+                torch.cat(
+                    ((pred_i_one_step[:, 0:2] + invar[:, 0:2]), pred_i_one_step[:, [2]]), dim=-1
+                ).cpu()
+            )
+
             self.exact.append(
                 torch.cat(
                     (
@@ -142,8 +169,28 @@ class MGNRollout:
                 ).cpu()
             )
 
+            #Loss calculation
+            mse_all_step[0] += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item() #Velocity prediction
+            mse_all_step[1] += mse(self.pred[-1], self.exact[-1]).item() #Pressure + velocity prediction
+
+            if i % C.num_test_time_steps < 50:
+                mse_50_step[0] += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
+                mse_50_step[1] += mse(self.pred[-1], self.exact[-1]).item()
+                num_50_steps += 1
+
+            mse_1_step[0] += mse(self.pred_one_step[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
+            mse_1_step[1] += mse(self.pred_one_step[-1], self.exact[-1]).item()
+
+            num_steps += 1
+
             self.faces.append(torch.squeeze(cells).numpy())
             self.graphs.append(graph.cpu())
+
+        mse_1_step = np.sqrt(mse_1_step / num_steps)
+        mse_50_step = np.sqrt(mse_50_step / num_50_steps)
+        mse_all_step = np.sqrt(mse_all_step / num_steps)
+
+        print("MSE 1 step: ", mse_1_step, "MSE 50 step: ", mse_50_step, "MSE all step: ", mse_all_step)
 
     def init_animation(self, idx):
         self.pred_i = [var[:, idx] for var in self.pred]
@@ -217,5 +264,5 @@ if __name__ == "__main__":
             frames=len(rollout.graphs) // C.frame_skip,
             interval=C.frame_interval,
         )
-        ani.save("animations/animation_" + C.viz_vars[i] + ".gif")
+        ani.save(f"animations/{C.ckpt_name.split('.')[0]}_animation_" + C.viz_vars[i] + ".gif")
         logger.info(f"Created animation for {C.viz_vars[i]}")

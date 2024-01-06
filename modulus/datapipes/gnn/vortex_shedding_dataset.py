@@ -88,6 +88,7 @@ class VortexSheddingDataset(DGLDataset):
             force_reload=force_reload,
             verbose=verbose,
         )
+
         self.data_dir = data_dir
         self.split = split
         self.num_samples = num_samples
@@ -121,7 +122,7 @@ class VortexSheddingDataset(DGLDataset):
         if self.split == "train":
             self.edge_stats = self._get_edge_stats()
         else:
-            self.edge_stats = load_json("edge_stats.json")
+            self.edge_stats = load_json(f"{self.data_dir}/edge_stats.json")
 
         # normalize edge features
         for i in range(num_samples):
@@ -157,7 +158,7 @@ class VortexSheddingDataset(DGLDataset):
         if self.split == "train":
             self.node_stats = self._get_node_stats()
         else:
-            self.node_stats = load_json("node_stats.json")
+            self.node_stats = load_json(f"{self.data_dir}/node_stats.json")
 
         # normalize node features
         for i in range(num_samples):
@@ -223,7 +224,7 @@ class VortexSheddingDataset(DGLDataset):
         stats.pop("edge_meansqr")
 
         # save to file
-        save_json(stats, "edge_stats.json")
+        save_json(stats, f"{self.data_dir}/edge_stats.json")
         return stats
 
     def _get_node_stats(self):
@@ -280,7 +281,7 @@ class VortexSheddingDataset(DGLDataset):
         stats.pop("velocity_diff_meansqr")
 
         # save to file
-        save_json(stats, "node_stats.json")
+        save_json(stats, f"{self.data_dir}/node_stats.json")
         return stats
 
     def _load_tf_data(self, path, split):

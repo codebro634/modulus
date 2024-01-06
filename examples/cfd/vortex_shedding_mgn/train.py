@@ -152,10 +152,10 @@ if __name__ == "__main__":
 
     # initialize loggers
     initialize_wandb(
-        project="Modulus-Launch",
-        entity="Modulus",
-        name="Vortex_Shedding-Training",
-        group="Vortex_Shedding-DDP-Group",
+        project="MGNs",
+        entity="besteteam",
+        name="test",
+        group="test",
         mode=C.wandb_mode,
     )  # Wandb logger
     logger = PythonLogger("main")  # General python logger
@@ -166,8 +166,12 @@ if __name__ == "__main__":
     start = time.time()
     rank_zero_logger.info("Training started...")
     for epoch in range(trainer.epoch_init, C.epochs):
-        for graph in trainer.dataloader:
+        for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
+            if i >= 1:
+                break
+        if epoch >= 1:
+            break
         rank_zero_logger.info(
             f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
         )
