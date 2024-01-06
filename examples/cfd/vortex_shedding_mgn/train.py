@@ -18,6 +18,7 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.nn.parallel import DistributedDataParallel
 import time, os
 import wandb as wb
+import json
 
 try:
     import apex
@@ -148,7 +149,8 @@ if __name__ == "__main__":
         with open(
             os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".json")), "w"
         ) as json_file:
-            json_file.write(C.model_dump_json(indent=4))
+            json.dump(C.__dict__, json_file, indent=4)
+            #json_file.write(C.model_dump_json(indent=4))
 
     # initialize loggers
     initialize_wandb(
@@ -168,10 +170,7 @@ if __name__ == "__main__":
     for epoch in range(trainer.epoch_init, C.epochs):
         for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
-            if i >= 1:
-                break
-        if epoch >= 1:
-            break
+
         rank_zero_logger.info(
             f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
         )
