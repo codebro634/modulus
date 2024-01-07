@@ -50,5 +50,6 @@ class Constants(BaseModel):
     frame_interval: int = 1
 
     # wb configs
+    wandb_tracking: bool = False
     wandb_mode: str = "disabled"
     watch_model: bool = False

@@ -19,6 +19,8 @@ from torch.nn.parallel import DistributedDataParallel
 import time, os
 import wandb as wb
 import json
+import argparse
+from inference import evaluate_model
 
 try:
     import apex
@@ -139,6 +141,36 @@ class MGNTrainer:
 
 
 if __name__ == "__main__":
+    # parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/cylinder_flow", help='Path to the dataset.')
+    parser.add_argument('--exp_name', default="standard", help='Name of the experiment.')
+    parser.add_argument('--exp_group', default="multihop", help='Group of the experiment.')
+    parser.add_argument('--epochs', type=int, default=C.num_training_samples,help='Number of epochs for training.')
+    parser.add_argument('--num_samples', type=int, default=C.num_training_samples, help='Number of different simulation used in training.')
+    parser.add_argument('--num_time_steps', type=int, default=C.num_training_time_steps, help='Number of time steps per simulation.')
+    parser.add_argument('--num_inf_samples', type=int, default=C.num_test_samples, help='Number of different simulation used for inference.')
+    parser.add_argument('--num_inf_time_steps', type=int, default=C.num_test_time_steps, help='Number of time steps per simulation used for inference.')
+    parser.add_argument('--multihop', default="none", help='Which multihop to use. Choose from {none,sum,sum_concat,concat}.')
+    parser.add_argument('--weight', type=int, default=0.5, help='The weight to be used for multihop if mode=sum is chosen.')
+    parser.add_argument('--wandb_logging', action='store_true', help='Tracks experiment with wandb.')
+    args = parser.parse_args()
+
+    C.num_test_time_steps = args.num_inf_time_steps
+    C.num_test_samples = args.num_inf_samples
+    C.num_training_time_steps = args.num_time_steps
+    C.num_training_samples = args.num_samples
+    C.epochs = args.epochs
+    C.data_dir = args.data_dir
+    C.ckpt_name = f"{args.exp_name}.pt"
+    C.data_dir = args.data_dir
+    if args.wandb_logging:
+        C.wandb_tracking = True
+        C.watch_model = True
+        C.wandb_mode = "online"
+    if args.multihop != "none":
+        C.multi_hop_edges = {"agg": args.multihop, "weight": args.weight}
+
     # initialize distributed manager
     DistributedManager.initialize()
     dist = DistributedManager()
@@ -156,8 +188,8 @@ if __name__ == "__main__":
     initialize_wandb(
         project="MGNs",
         entity="besteteam",
-        name="test",
-        group="test",
+        name=args.exp_name,
+        group=args.exp_group,
         mode=C.wandb_mode,
     )  # Wandb logger
     logger = PythonLogger("main")  # General python logger
@@ -191,3 +223,5 @@ if __name__ == "__main__":
             logger.info(f"Saved model on rank {dist.rank}")
         start = time.time()
     rank_zero_logger.info("Training completed!")
+
+    evaluate_model(C)

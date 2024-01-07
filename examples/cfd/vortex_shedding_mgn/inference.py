@@ -28,12 +28,14 @@ from modulus.launch.logging import PythonLogger
 from modulus.launch.utils import load_checkpoint
 from constants import Constants
 
-# Instantiate constants
-C = Constants()
+import wandb as wb
 
 
 class MGNRollout:
-    def __init__(self, logger):
+    def __init__(self, logger, C):
+        #set contants
+        self.C = C
+
         # set device
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info(f"Using {self.device} device")
@@ -57,7 +59,7 @@ class MGNRollout:
 
         # instantiate the model
         self.model = MeshGraphNet(
-            C.num_input_features, C.num_edge_features, C.num_output_features
+            C.num_input_features, C.num_edge_features, C.num_output_features, multi_hop_edges=C.multi_hop_edges
         )
         if C.jit:
             self.model = torch.jit.script(self.model).to(self.device)
@@ -109,7 +111,7 @@ class MGNRollout:
             # inference step
             invar = graph.ndata["x"].clone()
 
-            if i % (C.num_test_time_steps - 1) != 0: #If = 0, then new graph starts
+            if i % (self.C.num_test_time_steps - 1) != 0: #If = 0, then new graph starts
                 invar[:, 0:2] = self.pred[i - 1][:, 0:2].clone()
                 i += 1
             invar[:, 0:2] = self.dataset.normalize_node(
@@ -173,7 +175,7 @@ class MGNRollout:
             mse_all_step[0] += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item() #Velocity prediction
             mse_all_step[1] += mse(self.pred[-1], self.exact[-1]).item() #Pressure + velocity prediction
 
-            if i % C.num_test_time_steps < 50:
+            if i % self.C.num_test_time_steps < 50:
                 mse_50_step[0] += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
                 mse_50_step[1] += mse(self.pred[-1], self.exact[-1]).item()
                 num_50_steps += 1
@@ -186,9 +188,26 @@ class MGNRollout:
             self.faces.append(torch.squeeze(cells).numpy())
             self.graphs.append(graph.cpu())
 
+        #Save results
         mse_1_step = np.sqrt(mse_1_step / num_steps)
         mse_50_step = np.sqrt(mse_50_step / num_50_steps)
         mse_all_step = np.sqrt(mse_all_step / num_steps)
+
+        result_dict = {
+                    "MSE (velo) 1 step": mse_1_step[0],
+                    "MSE (velo) 50 step": mse_50_step[0],
+                    "MSE (velo) all step": mse_all_step[0],
+                    "MSE (velo+pressure) 1 step": mse_1_step[1],
+                    "MSE (velo+pressure) 50 step": mse_50_step[1],
+                    "MSE (velo+pressure) all step": mse_all_step[1],
+        }
+
+        with open(os.path.join(self.C.ckpt_path, self.C.ckpt_name.replace(".pt", ".txt")), 'w') as file:
+            for key, value in result_dict.items():
+                file.write(f"{key}: {value}\n")
+
+        if self.C.wandb_tracking:
+            wb.log(result_dict)
 
         print("MSE 1 step: ", mse_1_step, "MSE 50 step: ", mse_50_step, "MSE all step: ", mse_all_step)
 
@@ -210,7 +229,7 @@ class MGNRollout:
             os.makedirs("./animations")
 
     def animate(self, num):
-        num *= C.frame_skip
+        num *= self.C.frame_skip
         graph = self.graphs[num]
         y_star = self.pred_i[num].numpy()
         y_exact = self.exact_i[num].numpy()
@@ -249,11 +268,11 @@ class MGNRollout:
         return self.fig
 
 
-if __name__ == "__main__":
+def evaluate_model(C: Constants):
     logger = PythonLogger("main")  # General python logger
     logger.file_logging()
     logger.info("Rollout started...")
-    rollout = MGNRollout(logger)
+    rollout = MGNRollout(logger,C)
     idx = [rollout.var_identifier[k] for k in C.viz_vars]
     rollout.predict()
     for i in idx:
