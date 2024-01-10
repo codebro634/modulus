@@ -301,9 +301,9 @@ def load_checkpoint(
     """
     # Check if checkpoint directory exists
     if not Path(path).is_dir():
-        checkpoint_logging.warning(
-            f"Provided checkpoint directory {path} does not exist, skipping load"
-        )
+        #checkpoint_logging.warning(
+        #    f"Provided checkpoint directory {path} does not exist, skipping load"
+        #)
         return 0
 
     # == Loading model checkpoint ==
