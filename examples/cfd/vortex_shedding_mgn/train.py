@@ -139,8 +139,27 @@ class MGNTrainer:
             loss.backward()
             self.optimizer.step()
 
+#By ChatGPT
+def set_cwd(start_path='.'):
+    # Check if the current directory contains 'raw_dataset'
+    if 'raw_dataset' in os.listdir(start_path):
+        os.chdir(start_path)  # Change to the directory containing 'raw_dataset'
+        return True
+
+    # Recursively search in subdirectories
+    for subdir in os.listdir(start_path):
+        subpath = os.path.join(start_path, subdir)
+        if os.path.isdir(subpath):
+            if set_cwd(subpath):
+                return True
+
+    return False  # 'raw_dataset' directory not found in any subdirectory
 
 if __name__ == "__main__":
+    #Change cwd
+    set_cwd()
+    print(os.getcwd())
+
     # parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/cylinder_flow", help='Path to the dataset.')

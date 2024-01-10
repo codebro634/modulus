@@ -356,7 +356,7 @@ class DistributedManager(object):
         manager._initialization_method = method
 
         # Set device for this process and empty cache to optimize memory usage
-        torch.cuda.device(manager.device)
+        #torch.cuda.device(manager.device)
         torch.cuda.empty_cache()
 
     @staticmethod
