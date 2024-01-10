@@ -214,19 +214,17 @@ if __name__ == "__main__":
     logger = PythonLogger("main")  # General python logger
     rank_zero_logger = RankZeroLoggingWrapper(logger, dist)  # Rank 0 logger
     logger.file_logging()
-
     trainer = MGNTrainer(wb, dist, rank_zero_logger)
     start = time.time()
-    rank_zero_logger.info("Training started...")
+    #rank_zero_logger.info("Training started...")
     for epoch in range(trainer.epoch_init, C.epochs):
         for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
             print(i)
 
         log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
-        rank_zero_logger.info(
-            log_string
-        )
+        #rank_zero_logger.info(log_string)
+
         if C.wandb_tracking:
             wb.log({"loss": loss.detach().cpu()})
         with open(os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
@@ -247,6 +245,6 @@ if __name__ == "__main__":
             )
             logger.info(f"Saved model on rank {dist.rank}")
         start = time.time()
-    rank_zero_logger.info("Training completed!")
+    #rank_zero_logger.info("Training completed!")
 
     evaluate_model(C)
