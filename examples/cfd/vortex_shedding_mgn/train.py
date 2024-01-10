@@ -158,7 +158,6 @@ def set_cwd(start_path='.'):
 if __name__ == "__main__":
     #Change cwd
     set_cwd()
-    print(os.getcwd())
 
     # parse arguments
     parser = argparse.ArgumentParser()
@@ -200,7 +199,7 @@ if __name__ == "__main__":
         with open(
             os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".json")), "w"
         ) as json_file:
-            json.dump(C.__dict__, json_file, indent=4)
+            json.dump({**C.__dict__,**{"worlds": dist.world_size}}, json_file, indent=4)
             #json_file.write(C.model_dump_json(indent=4))
 
     # initialize loggers
@@ -223,10 +222,15 @@ if __name__ == "__main__":
         for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
 
+        log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
         rank_zero_logger.info(
-            f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
+            log_string
         )
-        wb.log({"loss": loss.detach().cpu()})
+        if C.wandb_tracking:
+            wb.log({"loss": loss.detach().cpu()})
+        with open(os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
+            file.write(log_string+ "\n")
+        print(log_string)
 
         # save checkpoint
         if dist.world_size > 1:

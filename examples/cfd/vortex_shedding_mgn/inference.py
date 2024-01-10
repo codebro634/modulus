@@ -202,7 +202,7 @@ class MGNRollout:
                     "MSE (velo+pressure) all step": mse_all_step[1],
         }
 
-        with open(os.path.join(self.C.ckpt_path, self.C.ckpt_name.replace(".pt", ".txt")), 'w') as file:
+        with open(os.path.join(self.C.ckpt_path, self.C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
             for key, value in result_dict.items():
                 file.write(f"{key}: {value}\n")
 
