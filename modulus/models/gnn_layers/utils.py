@@ -154,16 +154,16 @@ def concat_efeat_dgl(
 
                 if multi_hop["agg"] == "concat":
                     cat_feat = torch.cat((edges.data["x"], edges.src["x"], edges.dst["x"], edges.src["et"] - edges.data["x"],
-                                          edges.dst["et"] - edges.data["x"], edges.dst["vt"], edges.src["vt"]), dim=1)
+                                          edges.dst["et"] - edges.data["x"], edges.dst["vt"] - edges.src["x"], edges.src["vt"] - edges.dst["x"]), dim=1)
                 elif multi_hop["agg"] == "concat_sum":
                     mh_feat_edges = edges.src["et"] + edges.dst["et"] - 2 * edges.data["x"]
-                    mh_feat_vertices = edges.src["vt"] + edges.dst["vt"]
+                    mh_feat_vertices = edges.src["vt"] + edges.dst["vt"] - edges.src["x"] - edges.dst["x"]
                     cat_feat = torch.cat((edges.data["x"], edges.src["x"], edges.dst["x"], mh_feat_edges, mh_feat_vertices), dim=1)
                 elif multi_hop["agg"] == "sum":
                     mh_feat_edges = edges.src["et"] + edges.dst["et"] - 2 * edges.data["x"]
                     cat_feat = torch.cat((edges.data["x"] + multi_hop["weight"] * mh_feat_edges,
-                                          edges.src["x"] + multi_hop["weight"] * edges.src["vt"] ,
-                                          edges.dst["x"] + multi_hop["weight"] * edges.dst["vt"]), dim=1)
+                                          edges.src["x"] + multi_hop["weight"] * (edges.src["vt"] - edges.dst["x"]),
+                                          edges.dst["x"] + multi_hop["weight"] * (edges.dst["vt"] - edges.src["x"])), dim=1)
                 else:
                     raise ValueError(f"multi_hop agg {multi_hop['agg']} not supported")
 

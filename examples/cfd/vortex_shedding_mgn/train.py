@@ -153,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_inf_time_steps', type=int, default=C.num_test_time_steps, help='Number of time steps per simulation used for inference.')
     parser.add_argument('--multihop', default="none", help='Which multihop to use. Choose from {none,sum,sum_concat,concat}.')
     parser.add_argument('--weight', type=int, default=0.5, help='The weight to be used for multihop if mode=sum is chosen.')
-    parser.add_argument('--wandb_logging', action='store_true', help='Tracks experiment with wandb.')
+    parser.add_argument('--wandb', action='store_true', help='Tracks experiment with wandb.')
     args = parser.parse_args()
 
     C.num_test_time_steps = args.num_inf_time_steps
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     C.data_dir = args.data_dir
     C.ckpt_name = f"{args.exp_name}.pt"
     C.data_dir = args.data_dir
-    if args.wandb_logging:
+    if args.wandb:
         C.wandb_tracking = True
         C.watch_model = True
         C.wandb_mode = "online"
@@ -191,6 +191,7 @@ if __name__ == "__main__":
         name=args.exp_name,
         group=args.exp_group,
         mode=C.wandb_mode,
+        config={**C.__dict__,**{"worlds": dist.world_size}},
     )  # Wandb logger
     logger = PythonLogger("main")  # General python logger
     rank_zero_logger = RankZeroLoggingWrapper(logger, dist)  # Rank 0 logger
