@@ -221,6 +221,7 @@ if __name__ == "__main__":
     for epoch in range(trainer.epoch_init, C.epochs):
         for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
+            print(i)
 
         log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
         rank_zero_logger.info(
