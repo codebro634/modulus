@@ -57,7 +57,7 @@ class MGNRollout:
 
         # instantiate the model
         self.model = MeshGraphNet(
-            C.num_input_features, C.num_edge_features, C.num_output_features, multi_hop_edges=C.multi_hop_edges
+            C.num_input_features, C.num_edge_features, C.num_output_features, hidden_dim_edge_processor=C.hidden_dim_edge_processor,multi_hop_edges=C.multi_hop_edges
         )
         if C.jit:
             self.model = torch.jit.script(self.model).to(self.device)
@@ -187,17 +187,17 @@ class MGNRollout:
             self.graphs.append(graph.cpu())
 
         #Save results
-        mse_1_step = np.sqrt(mse_1_step / num_steps)
-        mse_50_step = np.sqrt(mse_50_step / num_50_steps)
-        mse_all_step = np.sqrt(mse_all_step / num_steps)
+        rmse_1_step = np.sqrt(mse_1_step / num_steps)
+        rmse_50_step = np.sqrt(mse_50_step / num_50_steps)
+        rmse_all_step = np.sqrt(mse_all_step / num_steps)
 
         result_dict = {
-                    "MSE (velo) 1 step": mse_1_step[0],
-                    "MSE (velo) 50 step": mse_50_step[0],
-                    "MSE (velo) all step": mse_all_step[0],
-                    "MSE (velo+pressure) 1 step": mse_1_step[1],
-                    "MSE (velo+pressure) 50 step": mse_50_step[1],
-                    "MSE (velo+pressure) all step": mse_all_step[1],
+                    "RMSE (velo) 1 step": rmse_1_step[0],
+                    "RMSE (velo) 50 step": rmse_50_step[0],
+                    "RMSE (velo) all step": rmse_all_step[0],
+                    "RMSE (velo+pressure) 1 step": rmse_1_step[1],
+                    "RMSE (velo+pressure) 50 step": rmse_50_step[1],
+                    "RMSE (velo+pressure) all step": rmse_all_step[1],
         }
 
         with open(os.path.join(self.C.ckpt_path, self.C.ckpt_name.replace(".pt", ".txt")), 'a') as file:

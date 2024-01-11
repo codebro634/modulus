@@ -21,6 +21,7 @@ import wandb as wb
 import json
 import argparse
 from inference import evaluate_model
+import psutil
 
 try:
     import apex
@@ -70,7 +71,7 @@ class MGNTrainer:
         # instantiate the model
         print("Instantiating model...", flush=True)
         self.model = MeshGraphNet(
-            C.num_input_features, C.num_edge_features, C.num_output_features, multi_hop_edges=C.multi_hop_edges
+            C.num_input_features, C.num_edge_features, C.num_output_features, hidden_dim_edge_processor=C.hidden_dim_edge_processor, multi_hop_edges=C.multi_hop_edges
         )
         if C.jit:
             self.model = torch.jit.script(self.model).to(dist.device)
@@ -158,6 +159,23 @@ def set_cwd(start_path='.'):
 
     return False  # 'raw_dataset' directory not found in any subdirectory
 
+#By ChatGPT
+def print_memory_info():
+    # Get memory information
+    memory_info = psutil.virtual_memory()
+
+    # Convert bytes to a human-readable format
+    def convert_bytes(bytes_size):
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if bytes_size < 1024.0:
+                break
+            bytes_size /= 1024.0
+        return f"{bytes_size:.2f} {unit}"
+
+    # Print used and available memory
+    print(f"Used Memory: {convert_bytes(memory_info.used)}")
+    print(f"Available Memory: {convert_bytes(memory_info.available)}")
+
 if __name__ == "__main__":
     #Change cwd
     set_cwd()
@@ -165,9 +183,10 @@ if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/cylinder_flow", help='Path to the dataset.')
-    parser.add_argument('--exp_name', default="standard", help='Name of the experiment.')
+    parser.add_argument('--exp_name', default="model", help='Name of the experiment.')
     parser.add_argument('--exp_group', default="multihop", help='Group of the experiment.')
     parser.add_argument('--epochs', type=int, default=C.num_training_samples,help='Number of epochs for training.')
+    parser.add_argument('--hidden', type=int, default=C.hidden_dim_edge_processor, help='Hidden dim width for edge processor.')
     parser.add_argument('--num_samples', type=int, default=C.num_training_samples, help='Number of different simulation used in training.')
     parser.add_argument('--num_time_steps', type=int, default=C.num_training_time_steps, help='Number of time steps per simulation.')
     parser.add_argument('--num_inf_samples', type=int, default=C.num_test_samples, help='Number of different simulation used for inference.')
@@ -185,12 +204,16 @@ if __name__ == "__main__":
     C.data_dir = args.data_dir
     C.ckpt_name = f"{args.exp_name}.pt"
     C.data_dir = args.data_dir
+    C.hidden_dim_edge_processor = args.hidden
     if args.wandb:
         C.wandb_tracking = True
         C.watch_model = True
         C.wandb_mode = "online"
     if args.multihop != "none":
         C.multi_hop_edges = {"agg": args.multihop, "weight": args.weight}
+    else:
+        C.multi_hop_edges = None
+
 
     # initialize distributed manager
     DistributedManager.initialize()
@@ -220,8 +243,9 @@ if __name__ == "__main__":
     for epoch in range(trainer.epoch_init, C.epochs):
         for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
-            if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or i % 1000 == 0:
-                print(f"Episode {epoch} | Graphs processed:{i}", flush=True)
+            if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or (i % 1000 == 0 and i < 10000) or i % 10000 == 0:
+                print(f"Epoch {epoch} | Graphs processed:{i}", flush=True)
+
 
         log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
         if C.wandb_tracking:
