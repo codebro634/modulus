@@ -247,4 +247,5 @@ if __name__ == "__main__":
         start = time.time()
     #rank_zero_logger.info("Training completed!")
 
-    evaluate_model(C)
+    if dist.rank == 0:
+        evaluate_model(C)

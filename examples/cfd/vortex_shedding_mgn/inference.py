@@ -38,7 +38,7 @@ class MGNRollout:
 
         # set device
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        logger.info(f"Using {self.device} device")
+        #logger.info(f"Using {self.device} device")
 
         # instantiate dataset
         self.dataset = VortexSheddingDataset(
@@ -269,10 +269,11 @@ class MGNRollout:
 
 
 def evaluate_model(C: Constants):
-    logger = PythonLogger("main")  # General python logger
-    logger.file_logging()
-    logger.info("Rollout started...")
-    rollout = MGNRollout(logger,C)
+    #logger = PythonLogger("main")  # General python logger
+    #logger.file_logging()
+    #logger.info("Rollout started...")
+    print("Rollout started...")
+    rollout = MGNRollout(None,C)#logger,C)
     idx = [rollout.var_identifier[k] for k in C.viz_vars]
     rollout.predict()
     for i in idx:
@@ -284,4 +285,4 @@ def evaluate_model(C: Constants):
             interval=C.frame_interval,
         )
         ani.save(f"animations/{C.ckpt_name.split('.')[0]}_animation_" + C.viz_vars[i] + ".gif")
-        logger.info(f"Created animation for {C.viz_vars[i]}")
+        #logger.info(f"Created animation for {C.viz_vars[i]}")
