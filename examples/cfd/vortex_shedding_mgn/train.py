@@ -94,7 +94,7 @@ class MGNTrainer:
         self.criterion = torch.nn.MSELoss()
         try:
             self.optimizer = apex.optimizers.FusedAdam(self.model.parameters(), lr=C.lr)
-            rank_zero_logger.info("Using FusedAdam optimizer")
+            #rank_zero_logger.info("Using FusedAdam optimizer")
         except:
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=C.lr)
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(
@@ -211,10 +211,10 @@ if __name__ == "__main__":
         mode=C.wandb_mode,
         config={**C.__dict__,**{"worlds": dist.world_size}},
     )  # Wandb logger
-    logger = PythonLogger("main")  # General python logger
-    rank_zero_logger = RankZeroLoggingWrapper(logger, dist)  # Rank 0 logger
-    logger.file_logging()
-    trainer = MGNTrainer(wb, dist, rank_zero_logger)
+    #logger = PythonLogger("main")  # General python logger
+    #rank_zero_logger = RankZeroLoggingWrapper(logger, dist)  # Rank 0 logger
+    #logger.file_logging()
+    trainer = MGNTrainer(wb, dist, None)#rank_zero_logger)
     start = time.time()
     #rank_zero_logger.info("Training started...")
     for epoch in range(trainer.epoch_init, C.epochs):
@@ -243,7 +243,7 @@ if __name__ == "__main__":
                 scaler=trainer.scaler,
                 epoch=epoch,
             )
-            logger.info(f"Saved model on rank {dist.rank}")
+            #logger.info(f"Saved model on rank {dist.rank}")
         start = time.time()
     #rank_zero_logger.info("Training completed!")
 
