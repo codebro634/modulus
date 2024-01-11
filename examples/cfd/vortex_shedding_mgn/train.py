@@ -57,7 +57,7 @@ class MGNTrainer:
         )
 
         # instantiate dataloader
-        print("Creating dataloader...")
+        print("Creating dataloader...", flush=True)
         self.dataloader = GraphDataLoader(
             dataset,
             batch_size=C.batch_size,
@@ -68,7 +68,7 @@ class MGNTrainer:
         )
 
         # instantiate the model
-        print("Instantiating model...")
+        print("Instantiating model...", flush=True)
         self.model = MeshGraphNet(
             C.num_input_features, C.num_edge_features, C.num_output_features, multi_hop_edges=C.multi_hop_edges
         )
@@ -115,7 +115,7 @@ class MGNTrainer:
             device=dist.device,
         )
 
-        print("Finished MGN Trainer init")
+        print("Finished MGN Trainer init", flush=True)
 
     def train(self, graph):
         graph = graph.to(self.dist.device)
@@ -216,19 +216,19 @@ if __name__ == "__main__":
 
     trainer = MGNTrainer(wb, dist)
     start = time.time()
-    print("Start training")
+    print("Start training", flush=True)
     for epoch in range(trainer.epoch_init, C.epochs):
         for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
-            if i < 10 or (i % 10 == 0 and i < 100):
-                print(i)
+            if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or i % 1000 == 0:
+                print(f"Episode {epoch} | Graphs processed:{i}", flush=True)
 
         log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
         if C.wandb_tracking:
             wb.log({"loss": loss.detach().cpu()})
         with open(os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
             file.write(log_string+ "\n")
-        print(log_string)
+        print(log_string, flush=True)
 
         # save checkpoint
         if dist.world_size > 1:
@@ -242,9 +242,9 @@ if __name__ == "__main__":
                 scaler=trainer.scaler,
                 epoch=epoch,
             )
-            print(f"Saved model on rank {dist.rank}")
+            print(f"Saved model on rank {dist.rank}", flush=True)
         start = time.time()
-    print("Training finished")
+    print("Training finished", flush=True)
 
     if dist.rank == 0:
         evaluate_model(C)

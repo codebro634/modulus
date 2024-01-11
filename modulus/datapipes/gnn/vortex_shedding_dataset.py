@@ -96,7 +96,7 @@ class VortexSheddingDataset(DGLDataset):
         self.noise_std = noise_std
         self.length = num_samples * (num_steps - 1)
 
-        print(f"Preparing the {split} dataset...")
+        print(f"Preparing the {split} dataset...", flush=True)
         # create the graphs with edge features
         dataset_iterator = self._load_tf_data(self.data_dir, self.split)
         self.graphs, self.cells, self.node_type = [], [], []
@@ -104,7 +104,7 @@ class VortexSheddingDataset(DGLDataset):
         self.mesh_pos = []
         for i in range(self.num_samples):
             if i % 20 == 0:
-                print(f"Loaded {i} / {self.num_samples} samples...")
+                print(f"Loaded {i} / {self.num_samples} samples...", flush=True)
             data_np = dataset_iterator.get_next()
             data_np = {key: arr[:num_steps].numpy() for key, arr in data_np.items()}
             src, dst = self.cell_to_adj(data_np["cells"][0])  # assuming stationary mesh
@@ -120,7 +120,7 @@ class VortexSheddingDataset(DGLDataset):
                 self.cells.append(data_np["cells"][0])
                 self.rollout_mask.append(self._get_rollout_mask(node_type))
 
-        print("Computing the edge stats...")
+        print("Computing the edge stats...", flush=True)
 
         # compute or load edge data stats
         if self.split == "train":
@@ -137,7 +137,7 @@ class VortexSheddingDataset(DGLDataset):
             )
 
         # create the node features
-        print("Computing the node features...")
+        print("Computing the node features...", flush=True)
 
         dataset_iterator = self._load_tf_data(self.data_dir, self.split)
         self.node_features, self.node_targets = [], []
@@ -167,7 +167,7 @@ class VortexSheddingDataset(DGLDataset):
             self.node_stats = load_json(f"{self.data_dir}/node_stats.json")
 
         # normalize node features
-        print("Normalizing the node features...")
+        print("Normalizing the node features...", flush=True)
         for i in range(num_samples):
             self.node_features[i]["velocity"] = self.normalize_node(
                 self.node_features[i]["velocity"],

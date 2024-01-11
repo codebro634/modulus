@@ -204,7 +204,7 @@ class MGNRollout:
             for key, value in result_dict.items():
                 out_str = f"{key}: {value}"
                 file.write(out_str+"\n")
-                print(out_str)
+                print(out_str, flush=True)
 
         if self.C.wandb_tracking:
             wb.log(result_dict)
@@ -267,7 +267,7 @@ class MGNRollout:
 
 
 def evaluate_model(C: Constants):
-    print("Rollout started...")
+    print("Rollout started...", flush=True)
     rollout = MGNRollout(C)
     idx = [rollout.var_identifier[k] for k in C.viz_vars]
     rollout.predict()
