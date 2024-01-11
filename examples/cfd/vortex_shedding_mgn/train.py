@@ -44,7 +44,7 @@ C = Constants()
 
 
 class MGNTrainer:
-    def __init__(self, wb, dist, rank_zero_logger):
+    def __init__(self, wb, dist):
         self.dist = dist
 
         # instantiate dataset
@@ -57,6 +57,7 @@ class MGNTrainer:
         )
 
         # instantiate dataloader
+        print("Creating dataloader...")
         self.dataloader = GraphDataLoader(
             dataset,
             batch_size=C.batch_size,
@@ -67,6 +68,7 @@ class MGNTrainer:
         )
 
         # instantiate the model
+        print("Instantiating model...")
         self.model = MeshGraphNet(
             C.num_input_features, C.num_edge_features, C.num_output_features, multi_hop_edges=C.multi_hop_edges
         )
@@ -94,7 +96,6 @@ class MGNTrainer:
         self.criterion = torch.nn.MSELoss()
         try:
             self.optimizer = apex.optimizers.FusedAdam(self.model.parameters(), lr=C.lr)
-            #rank_zero_logger.info("Using FusedAdam optimizer")
         except:
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=C.lr)
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(
@@ -113,6 +114,8 @@ class MGNTrainer:
             scaler=self.scaler,
             device=dist.device,
         )
+
+        print("Finished MGN Trainer init")
 
     def train(self, graph):
         graph = graph.to(self.dist.device)
@@ -200,7 +203,6 @@ if __name__ == "__main__":
             os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".json")), "w"
         ) as json_file:
             json.dump({**C.__dict__,**{"worlds": dist.world_size}}, json_file, indent=4)
-            #json_file.write(C.model_dump_json(indent=4))
 
     # initialize loggers
     initialize_wandb(
@@ -211,20 +213,16 @@ if __name__ == "__main__":
         mode=C.wandb_mode,
         config={**C.__dict__,**{"worlds": dist.world_size}},
     )  # Wandb logger
-    #logger = PythonLogger("main")  # General python logger
-    #rank_zero_logger = RankZeroLoggingWrapper(logger, dist)  # Rank 0 logger
-    #logger.file_logging()
-    trainer = MGNTrainer(wb, dist, None)#rank_zero_logger)
+
+    trainer = MGNTrainer(wb, dist)
     start = time.time()
-    #rank_zero_logger.info("Training started...")
+    print("Start training")
     for epoch in range(trainer.epoch_init, C.epochs):
         for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
             print(i)
 
         log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
-        #rank_zero_logger.info(log_string)
-
         if C.wandb_tracking:
             wb.log({"loss": loss.detach().cpu()})
         with open(os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
@@ -243,9 +241,9 @@ if __name__ == "__main__":
                 scaler=trainer.scaler,
                 epoch=epoch,
             )
-            #logger.info(f"Saved model on rank {dist.rank}")
+            print(f"Saved model on rank {dist.rank}")
         start = time.time()
-    #rank_zero_logger.info("Training completed!")
+    print("Training finished")
 
     if dist.rank == 0:
         evaluate_model(C)

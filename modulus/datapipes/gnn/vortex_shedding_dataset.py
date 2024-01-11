@@ -120,6 +120,8 @@ class VortexSheddingDataset(DGLDataset):
                 self.cells.append(data_np["cells"][0])
                 self.rollout_mask.append(self._get_rollout_mask(node_type))
 
+        print("Computing the edge stats...")
+
         # compute or load edge data stats
         if self.split == "train":
             self.edge_stats = self._get_edge_stats()
@@ -135,6 +137,8 @@ class VortexSheddingDataset(DGLDataset):
             )
 
         # create the node features
+        print("Computing the node features...")
+
         dataset_iterator = self._load_tf_data(self.data_dir, self.split)
         self.node_features, self.node_targets = [], []
         for i in range(self.num_samples):
@@ -163,6 +167,7 @@ class VortexSheddingDataset(DGLDataset):
             self.node_stats = load_json(f"{self.data_dir}/node_stats.json")
 
         # normalize node features
+        print("Normalizing the node features...")
         for i in range(num_samples):
             self.node_features[i]["velocity"] = self.normalize_node(
                 self.node_features[i]["velocity"],

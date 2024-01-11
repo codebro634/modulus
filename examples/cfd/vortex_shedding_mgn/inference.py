@@ -24,7 +24,6 @@ from matplotlib.patches import Rectangle
 
 from modulus.models.meshgraphnet import MeshGraphNet
 from modulus.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
-from modulus.launch.logging import PythonLogger
 from modulus.launch.utils import load_checkpoint
 from constants import Constants
 
@@ -32,13 +31,12 @@ import wandb as wb
 
 
 class MGNRollout:
-    def __init__(self, logger, C):
+    def __init__(self, C):
         #set contants
         self.C = C
 
         # set device
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        #logger.info(f"Using {self.device} device")
 
         # instantiate dataset
         self.dataset = VortexSheddingDataset(
@@ -204,12 +202,12 @@ class MGNRollout:
 
         with open(os.path.join(self.C.ckpt_path, self.C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
             for key, value in result_dict.items():
-                file.write(f"{key}: {value}\n")
+                out_str = f"{key}: {value}"
+                file.write(out_str+"\n")
+                print(out_str)
 
         if self.C.wandb_tracking:
             wb.log(result_dict)
-
-        print("MSE 1 step: ", mse_1_step, "MSE 50 step: ", mse_50_step, "MSE all step: ", mse_all_step)
 
     def init_animation(self, idx):
         self.pred_i = [var[:, idx] for var in self.pred]
@@ -269,11 +267,8 @@ class MGNRollout:
 
 
 def evaluate_model(C: Constants):
-    #logger = PythonLogger("main")  # General python logger
-    #logger.file_logging()
-    #logger.info("Rollout started...")
     print("Rollout started...")
-    rollout = MGNRollout(None,C)#logger,C)
+    rollout = MGNRollout(C)
     idx = [rollout.var_identifier[k] for k in C.viz_vars]
     rollout.predict()
     for i in idx:
@@ -285,4 +280,3 @@ def evaluate_model(C: Constants):
             interval=C.frame_interval,
         )
         ani.save(f"animations/{C.ckpt_name.split('.')[0]}_animation_" + C.viz_vars[i] + ".gif")
-        #logger.info(f"Created animation for {C.viz_vars[i]}")
