@@ -103,6 +103,8 @@ class VortexSheddingDataset(DGLDataset):
         noise_mask, self.rollout_mask = [], []
         self.mesh_pos = []
         for i in range(self.num_samples):
+            if i % 20 == 0:
+                print(f"Loaded {i} / {self.num_samples} samples...")
             data_np = dataset_iterator.get_next()
             data_np = {key: arr[:num_steps].numpy() for key, arr in data_np.items()}
             src, dst = self.cell_to_adj(data_np["cells"][0])  # assuming stationary mesh
