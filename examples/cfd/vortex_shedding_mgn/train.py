@@ -220,7 +220,8 @@ if __name__ == "__main__":
     for epoch in range(trainer.epoch_init, C.epochs):
         for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
-            print(i)
+            if i < 10 or (i % 10 == 0 and i < 100):
+                print(i)
 
         log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
         if C.wandb_tracking:
