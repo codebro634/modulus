@@ -192,7 +192,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_inf_samples', type=int, default=C.num_test_samples, help='Number of different simulation used for inference.')
     parser.add_argument('--num_inf_time_steps', type=int, default=C.num_test_time_steps, help='Number of time steps per simulation used for inference.')
     parser.add_argument('--multihop', default="none", help='Which multihop to use. Choose from {none,sum,sum_concat,concat}.')
-    parser.add_argument('--weight', type=int, default=0.5, help='The weight to be used for multihop if mode=sum is chosen.')
+    parser.add_argument('--weight', type=float, default=0.5, help='The weight to be used for multihop if mode=sum is chosen.')
     parser.add_argument('--wandb', action='store_true', help='Tracks experiment with wandb.')
     args = parser.parse_args()
 
