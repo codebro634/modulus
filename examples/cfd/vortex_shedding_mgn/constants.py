@@ -26,9 +26,9 @@ class Constants(BaseModel):
 
     # training configs
     batch_size: int = 1
-    epochs: int = 2#25
-    num_training_samples: int = 2#400
-    num_training_time_steps: int = 2#300
+    epochs: int = 25
+    num_training_samples: int = 400
+    num_training_time_steps: int = 300
     lr: float = 0.0001
     lr_decay_rate: float = 0.9999991
     hidden_dim_edge_processor: int = 128
@@ -44,8 +44,8 @@ class Constants(BaseModel):
     jit: bool = False
 
     # test & visualization configs
-    num_test_samples: int = 1#10
-    num_test_time_steps: int = 11#300
+    num_test_samples: int = 10
+    num_test_time_steps: int = 300
     viz_vars: Tuple[str, ...] = ("u", "v", "p")
     frame_skip: int = 10
     frame_interval: int = 1
