@@ -211,8 +211,8 @@ for i,t in enumerate(times_p):
     pressure[i] = x[:,np.newaxis]
 sim_data['pressure'] = pressure
 
-sim_data['cells'] = np.array(list(mesh.cells()))
-sim_data['mesh_pos'] = np.array(list(mesh.coordinates()))
+sim_data['cells'] = np.repeat(np.array(list(mesh.cells()))[np.newaxis,...],num_steps,axis=0)
+sim_data['mesh_pos'] = np.repeat(np.array(list(mesh.coordinates()))[np.newaxis,...],num_steps,axis=0)
 
 np.save(results_dir+"/simdata.npy",[sim_data])
 
