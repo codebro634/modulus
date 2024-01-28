@@ -38,7 +38,7 @@ rho = 1            # density
 channel = Rectangle(Point(0, 0), Point(2.2, 0.41))
 cylinder = Circle(Point(0.2, 0.2), 0.05)
 domain = channel - cylinder
-mesh = generate_mesh(domain, 64)
+mesh = generate_mesh(domain, 3) #64
 if args.v:
     print(f"{mesh.num_vertices()} vertices in mesh.")
 
@@ -113,16 +113,11 @@ A3 = assemble(a3)
 [bc.apply(A1) for bc in bcu]
 [bc.apply(A2) for bc in bcp]
 
-# Create XDMF files for visualization output
-xdmffile_u = XDMFFile(results_dir+'/velocity.xdmf')
-xdmffile_p = XDMFFile(results_dir+'/pressure.xdmf')
 
 # Create time series (for use in reaction_system.py)
-timeseries_u = TimeSeries(results_dir+'/velocity_series')
-timeseries_p = TimeSeries(results_dir+'/pressure_series')
-
-# Save mesh to file (for use in reaction_system.py)
-File(results_dir+'/cylinder.xml.gz') << mesh
+tut,tpt = results_dir+'/tmp1', results_dir+'/tmp2'
+timeseries_u = TimeSeries(tut)
+timeseries_p = TimeSeries(tpt)
 
 # Time-stepping
 t = 0
@@ -159,10 +154,6 @@ for n in range(num_steps): #num_steps
         plt.savefig(os.path.join(plot_path,title+".png"))
         image_p_locs.append(os.path.join(plot_path,title+".png"))
 
-    # Save solution to file (XDMF/HDF5)
-    xdmffile_u.write(u_, t)
-    xdmffile_p.write(p_, t)
-
     # Save nodal values to file
     timeseries_u.store(u_.vector(), t)
     timeseries_p.store(p_.vector(), t)
@@ -196,3 +187,38 @@ if args.p:
 
     for image in image_p_locs:
         os.remove(image)
+
+
+#Save data in numpy format
+
+n = mesh.num_vertices()
+sim_data = dict()
+
+velocity = np.zeros(shape=(num_steps,n,2))
+times_v = timeseries_u.vector_times()
+for i,t in enumerate(times_v):
+    timeseries_u.retrieve(u_.vector(),t)
+    x = u_.compute_vertex_values(mesh) #The same as calling u_ at the coordinates of each vertex
+    velo_t = np.concatenate( (x[0:n,np.newaxis],x[n:,np.newaxis]), axis=-1)
+    velocity[i] = velo_t
+sim_data['velocity'] = velocity
+
+pressure = np.zeros(shape=(num_steps,n,1))
+times_p = timeseries_p.vector_times()
+for i,t in enumerate(times_p):
+    timeseries_p.retrieve(p_.vector(),t)
+    x = p_.compute_vertex_values(mesh)
+    pressure[i] = x[:,np.newaxis]
+sim_data['pressure'] = pressure
+
+sim_data['cells'] = np.array(list(mesh.cells()))
+sim_data['mesh_pos'] = np.array(list(mesh.coordinates()))
+
+np.save(results_dir+"/simdata.npy",[sim_data])
+
+#Remove temp files
+os.remove(tut+".h5")
+os.remove(tpt+".h5")
+
+#new_sim_data = np.load(results_dir+"/simdata.npy",allow_pickle=True)
+
