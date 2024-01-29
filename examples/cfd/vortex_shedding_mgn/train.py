@@ -45,6 +45,7 @@ C = Constants()
 
 
 class MGNTrainer:
+
     def __init__(self, wb, dist):
         self.dist = dist
 
