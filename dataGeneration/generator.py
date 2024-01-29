@@ -7,7 +7,6 @@ import os
 import imageio
 import argparse
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--p", action="store_true", help="If set, save gif of the simulation.")
 parser.add_argument("--v", action="store_true", help="Activate verbosity.")
@@ -38,7 +37,7 @@ rho = 1            # density
 channel = Rectangle(Point(0, 0), Point(2.2, 0.41))
 cylinder = Circle(Point(0.2, 0.2), 0.05)
 domain = channel - cylinder
-mesh = generate_mesh(domain, 3) #64
+mesh = generate_mesh(domain, 64) #64
 if args.v:
     print(f"{mesh.num_vertices()} vertices in mesh.")
 
@@ -123,7 +122,7 @@ timeseries_p = TimeSeries(tpt)
 t = 0
 image_v_locs,image_p_locs = [],[]
 
-for n in range(num_steps): #num_steps
+for n in range(10): #num_steps
 
     # Update current time
     t += dt
@@ -213,6 +212,30 @@ sim_data['pressure'] = pressure
 
 sim_data['cells'] = np.repeat(np.array(list(mesh.cells()))[np.newaxis,...],num_steps,axis=0)
 sim_data['mesh_pos'] = np.repeat(np.array(list(mesh.coordinates()))[np.newaxis,...],num_steps,axis=0)
+
+#From https://fenicsproject.org/qa/2989/vertex-on-mesh-boundary/
+def get_vertices_with_cond(mesh,condition):
+    V = FunctionSpace(mesh, 'CG', 1)
+    bc = DirichletBC(V, 1, condition)
+    u = Function(V)
+    bc.apply(u.vector())
+    d2v = dof_to_vertex_map(V)
+    vertices_on_boundary = d2v[u.vector() == 1.0]
+    return vertices_on_boundary
+
+vertex_types = []
+v_inflow, v_outflow, v_walls, v_cylinder  = get_vertices_with_cond(mesh,inflow), get_vertices_with_cond(mesh,outflow), get_vertices_with_cond(mesh,walls), get_vertices_with_cond(mesh,cylinder)
+for v in range(mesh.num_vertices()):
+    if v in v_inflow and not v in v_walls: #As in deepminds dataset, the four corners are considered boundaries
+        vertex_types.append(4)
+    elif v in v_outflow and not v in v_walls:
+        vertex_types.append(5)
+    elif v in v_walls or v in v_cylinder:
+        vertex_types.append(6)
+    else:
+        vertex_types.append(0)
+    
+sim_data['node_type'] = np.repeat(np.array(vertex_types)[np.newaxis,:,np.newaxis],num_steps,axis=0)
 
 np.save(results_dir+"/simdata.npy",[sim_data])
 
