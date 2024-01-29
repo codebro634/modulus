@@ -122,7 +122,7 @@ timeseries_p = TimeSeries(tpt)
 t = 0
 image_v_locs,image_p_locs = [],[]
 
-for n in range(10): #num_steps
+for n in range(num_steps): #num_steps
 
     # Update current time
     t += dt
