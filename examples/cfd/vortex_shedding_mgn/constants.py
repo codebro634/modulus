@@ -23,6 +23,8 @@ class Constants(BaseModel):
 
     # data configs
     data_dir: str = "./raw_dataset/cylinder_flow/cylinder_flow"
+    exp_name: str = "model"
+    exp_group: str = "multihop"
 
     # training configs
     batch_size: int = 1

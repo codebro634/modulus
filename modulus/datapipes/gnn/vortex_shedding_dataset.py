@@ -98,20 +98,23 @@ class VortexSheddingDataset(DGLDataset):
 
         print(f"Preparing the {split} dataset...", flush=True)
         # create the graphs with edge features
-        if os.path.exists(self.data_dir + "/" + self.split + ".tfrecord"):
-            dataset_iterator = self._load_tf_data(self.data_dir, self.split)
-        elif os.path.exists(self.data_dir + "/" + self.split + ".npy"):
-            dataset = np.load(self.data_dir + "/" + self.split + ".npy", allow_pickle=True)
-            class _dataset_iterator:
-                def __init__(self, dataset):
-                    self.dataset = dataset
-                    self.i = 0
-                def get_next(self):
-                    self.i += 1
-                    return self.dataset[self.i-1]
-            dataset_iterator = _dataset_iterator(dataset)
-        else:
-            raise FileNotFoundError()
+        def get_dataset_iterator():
+            if os.path.exists(self.data_dir + "/" + self.split + ".tfrecord"):
+                return self._load_tf_data(self.data_dir, self.split)
+            elif os.path.exists(self.data_dir + "/" + self.split + ".npy"):
+                dataset = np.load(self.data_dir + "/" + self.split + ".npy", allow_pickle=True)
+                class _dataset_iterator:
+                    def __init__(self, dataset):
+                        self.dataset = dataset
+                        self.i = 0
+                    def get_next(self):
+                        self.i += 1
+                        return self.dataset[self.i-1]
+                return _dataset_iterator(dataset)
+            else:
+                raise FileNotFoundError()
+
+        dataset_iterator = get_dataset_iterator()
         self.graphs, self.cells, self.node_type = [], [], []
         noise_mask, self.rollout_mask = [], []
         self.mesh_pos = []
@@ -153,11 +156,11 @@ class VortexSheddingDataset(DGLDataset):
         # create the node features
         print("Computing the node features...", flush=True)
 
-        dataset_iterator = self._load_tf_data(self.data_dir, self.split)
+        dataset_iterator = get_dataset_iterator()
         self.node_features, self.node_targets = [], []
         for i in range(self.num_samples):
             data_np = dataset_iterator.get_next()
-            data_np = {key: arr[:num_steps].numpy() for key, arr in data_np.items()}
+            data_np = {key: arr[:num_steps] if isinstance(arr, np.ndarray) else arr[:num_steps].numpy() for key, arr in data_np.items()}
             features, targets = {}, {}
             features["velocity"] = self._drop_last(data_np["velocity"])
             targets["velocity"] = self._push_forward_diff(data_np["velocity"])
