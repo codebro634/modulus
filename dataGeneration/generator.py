@@ -193,11 +193,10 @@ for sim in range(args.sims):
     
     
     #Save data in numpy format
-    
     n = mesh.num_vertices()
     sim_data = dict()
     
-    velocity = np.zeros(shape=(num_steps,n,2))
+    velocity = np.zeros(shape=(num_steps,n,2),dtype=np.float32)
     times_v = timeseries_u.vector_times()
     for i,t in enumerate(times_v):
         timeseries_u.retrieve(u_.vector(),t)
@@ -206,7 +205,7 @@ for sim in range(args.sims):
         velocity[i] = velo_t
     sim_data['velocity'] = velocity
     
-    pressure = np.zeros(shape=(num_steps,n,1))
+    pressure = np.zeros(shape=(num_steps,n,1),dtype=np.float32)
     times_p = timeseries_p.vector_times()
     for i,t in enumerate(times_p):
         timeseries_p.retrieve(p_.vector(),t)
@@ -214,8 +213,8 @@ for sim in range(args.sims):
         pressure[i] = x[:,np.newaxis]
     sim_data['pressure'] = pressure
     
-    sim_data['cells'] = np.repeat(np.array(list(mesh.cells()))[np.newaxis,...],num_steps,axis=0)
-    sim_data['mesh_pos'] = np.repeat(np.array(list(mesh.coordinates()))[np.newaxis,...],num_steps,axis=0)
+    sim_data['cells'] = np.repeat(np.array(list(mesh.cells()),dtype=np.int32)[np.newaxis,...],num_steps,axis=0)
+    sim_data['mesh_pos'] = np.repeat(np.array(list(mesh.coordinates()),dtype=np.float32)[np.newaxis,...],num_steps,axis=0)
     
     #From https://fenicsproject.org/qa/2989/vertex-on-mesh-boundary/
     def get_vertices_with_cond(mesh,condition):
@@ -239,7 +238,7 @@ for sim in range(args.sims):
         else:
             vertex_types.append(0)
             
-    sim_data['node_type'] = np.repeat(np.array(vertex_types)[np.newaxis,:,np.newaxis],num_steps,axis=0)
+    sim_data['node_type'] = np.repeat(np.array(vertex_types,dtype=np.int32)[np.newaxis,:,np.newaxis],num_steps,axis=0)
     sims_data.append(sim_data)
     
     #Remove temp files
