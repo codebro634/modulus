@@ -37,11 +37,15 @@ for sim in range(args.sims):
     mu = 0.001         # dynamic viscosity
     rho = 1            # density
     
-    # Create mesh
-    channel = Rectangle(Point(0, 0), Point(2.2, 0.41))
-    cylinder = Circle(Point(0.2, 0.2), 0.05)
-    domain = channel - cylinder
-    mesh = generate_mesh(domain, 64) #64
+    # Create/Load mesh
+    #channel = Rectangle(Point(0, 0), Point(2.2, 0.41))
+    #cylinder = Circle(Point(0.2, 0.2), 0.05)
+    #domain = channel - cylinder
+    #mesh = generate_mesh(domain, 64) #64
+    mesh = Mesh()
+    with XDMFFile("mesh.xdmf") as infile:
+        infile.read(mesh)
+
     if args.v:
         print(f"{mesh.num_vertices()} vertices in mesh.")
     
