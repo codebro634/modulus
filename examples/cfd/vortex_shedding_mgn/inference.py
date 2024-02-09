@@ -72,7 +72,7 @@ class MGNRollout:
             os.path.join(C.ckpt_path, C.ckpt_name),
             models=self.model,
             device=self.device,
-            epoch=C.cpk
+            epoch=C.ckp
         )
 
         self.var_identifier = {"u": 0, "v": 1, "p": 2}
