@@ -54,7 +54,7 @@ for sim in range(args.sims):
 
         channel_width = metadata['width']
         channel_height = metadata['height']
-        obstacle_condition = " || ".join('(' + metadata['obstacle_condition'] + ')')
+        obstacle_condition = " || ".join('(' + metadata['object_boundaries'] + ')')
     else:
         channel = Rectangle(Point(0, 0), Point(1.6, 0.41))
         obstacle = Circle(Point(0.33, 0.2), 0.05)
