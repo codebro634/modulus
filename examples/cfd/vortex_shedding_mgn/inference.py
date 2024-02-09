@@ -141,6 +141,9 @@ class MGNRollout:
             invar[:, 0:2] = self.dataset.denormalize(
                 invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
             )
+            one_step_invar[:, 0:2] = self.dataset.denormalize(
+                one_step_invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
+            )
 
 
             # do not update the "wall_boundary" & "outflow" nodes
@@ -161,7 +164,7 @@ class MGNRollout:
 
             self.pred_one_step.append(
                 torch.cat(
-                    ((pred_i_one_step[:, 0:2] + invar[:, 0:2]), pred_i_one_step[:, [2]]), dim=-1
+                    ((pred_i_one_step[:, 0:2] + one_step_invar[:, 0:2]), pred_i_one_step[:, [2]]), dim=-1
                 ).cpu()
             )
 
