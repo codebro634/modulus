@@ -19,7 +19,7 @@ parser.add_argument('--mesh', default="meshes/test", help='Path to mesh')
 args = parser.parse_args()
 
 results_dir = args.dir
-os.makedirs(results_dir,exist_ok=True)
+os.makedirs(results_dir, exist_ok=True)
 
 sims_data = [] #One entry for each simulation
 for sim in range(args.sims):
@@ -263,7 +263,7 @@ for sim in range(args.sims):
     sim_data['node_type'] = np.repeat(np.array(vertex_types,dtype=np.int32)[np.newaxis,:,np.newaxis],num_steps,axis=0)
 
     for k, v in sim_data.items():
-        sim_data[k] = sims_data[k][0::N_save]
+        sim_data[k] = sims_data[k][(N_save-1)::N_save] #Skip first data points to avoid initial chaos phase
 
     sims_data.append(sim_data)
     
