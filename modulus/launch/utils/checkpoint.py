@@ -300,7 +300,7 @@ def load_checkpoint(
         Loaded epoch
     """
     # Check if checkpoint directory exists
-    if not Path(path).is_dir():
+    if epoch==-1 or (not Path(path).is_dir()):
         #checkpoint_logging.warning(
         #    f"Provided checkpoint directory {path} does not exist, skipping load"
         #)
