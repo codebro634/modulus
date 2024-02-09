@@ -15,7 +15,7 @@ parser.add_argument("--p", action="store_true", help="If set, save gif of the si
 parser.add_argument("--v", action="store_true", help="Activate verbosity.")
 parser.add_argument('--sims', type=int, default=1, help='Number of simulations to generate data for.')
 parser.add_argument('--dir', default="navier_stokes_cylinder", help='Path to where results are stored')
-parser.add_argument('--mesh', default="meshes/test", help='Path to mesh')
+parser.add_argument('--mesh', default="meshes/standard", help='Path to mesh')
 args = parser.parse_args()
 
 results_dir = args.dir
@@ -47,9 +47,9 @@ for sim in range(args.sims):
     # Create/Load mesh
     if mesh_path is not None:
         mesh = Mesh()
-        with XDMFFile(os.join(mesh_path, "mesh.xdmf")) as infile:
+        with XDMFFile(os.path.join(mesh_path, "mesh.xdmf")) as infile:
             infile.read(mesh)
-        with open(os.join(mesh_path, 'metadata.json'), 'r') as f:
+        with open(os.path.join(mesh_path, 'metadata.json'), 'r') as f:
             metadata = json.load(f)
 
         channel_width = metadata['width']
@@ -140,7 +140,7 @@ for sim in range(args.sims):
     
     
     # Create time series (for use in reaction_system.py)
-    tut,tpt = results_dir+'/tmp1', results_dir+'/tmp2'
+    tut,tpt = os.path.join(results_dir, 'tmp1'), os.path.join(results_dir,'tmp2')
     timeseries_u = TimeSeries(tut)
     timeseries_p = TimeSeries(tpt)
     
