@@ -61,7 +61,7 @@ class PythonLogger:
 
     def success(self, message: str):
         """Log success"""
-        self.logger.info(colored(message, "light_green"))
+        #self.logger.info(colored(message, "light_green"))
 
     def warning(self, message: str):
         """Log warning"""
