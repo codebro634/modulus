@@ -112,9 +112,15 @@ class MGNRollout:
             if i % (self.C.num_test_time_steps - 1) != 0: #If = 0, then new graph starts
                 invar[:, 0:2] = self.pred[i - 1][:, 0:2].clone()
                 i += 1
+
             invar[:, 0:2] = self.dataset.normalize_node(
                 invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
             )
+            one_step_invar = graph.ndata["x"].clone()
+            one_step_invar[:, 0:2] = self.dataset.normalize_node(
+                one_step_invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
+            )
+
             pred_i = self.model(invar, graph.edata["x"], graph).detach()  # predict
             pred_i_one_step = self.model(graph.ndata["x"].clone(), graph.edata["x"], graph).detach()
 
