@@ -150,7 +150,7 @@ for sim in range(args.sims):
     t = 0
     image_v_locs,image_p_locs = [],[]
     
-    for n in range(22): #num_steps
+    for n in range(num_steps): #num_steps
     
         # Update current time
         t += dt
@@ -194,7 +194,7 @@ for sim in range(args.sims):
             print(f"Progress {t/T}")
         
     if args.v:
-        print(f"Duration: {time.time() -  start}")
+        print(f"Duration: {round(time.time() -  start,3)}s")
     
     #Create animation
     if args.p:
