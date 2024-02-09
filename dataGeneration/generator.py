@@ -66,6 +66,8 @@ for sim in range(args.sims):
 
     if args.v:
         print(f"{mesh.num_vertices()} vertices in mesh.")
+        print(f"Width: {channel_width}, Height: {channel_height}")
+        print(f"Obstacle condition: {obstacle_condition}")
     
     # Define function spaces
     V = VectorFunctionSpace(mesh, 'P', 2)
