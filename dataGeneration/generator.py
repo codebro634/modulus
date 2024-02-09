@@ -6,12 +6,16 @@ import time
 import os
 import imageio
 import argparse
+import json
+
+#TODO check if this code works for multiple obstacles
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--p", action="store_true", help="If set, save gif of the simulation.")
 parser.add_argument("--v", action="store_true", help="Activate verbosity.")
 parser.add_argument('--sims', type=int, default=1, help='Number of simulations to generate data for.')
 parser.add_argument('--dir', default="navier_stokes_cylinder", help='Path to where results are stored')
+parser.add_argument('--mesh', default="meshes/test", help='Path to mesh')
 args = parser.parse_args()
 
 results_dir = args.dir
@@ -31,20 +35,34 @@ for sim in range(args.sims):
     
     start = time.time()
     
-    T = 5.0            # final time
-    num_steps = 5000   # number of time steps
+    T = 6.0            # final time
+    num_steps = 6000   # number of time steps
     dt = T / num_steps # time step size
+    N_save = 10 #Every N-th time step is saved
     mu = 0.001         # dynamic viscosity
     rho = 1            # density
+    inflow_peak = 0.52
+    mesh_path = args.mesh
     
     # Create/Load mesh
-    #channel = Rectangle(Point(0, 0), Point(2.2, 0.41))
-    #cylinder = Circle(Point(0.2, 0.2), 0.05)
-    #domain = channel - cylinder
-    #mesh = generate_mesh(domain, 64) #64
-    mesh = Mesh()
-    with XDMFFile("mesh.xdmf") as infile:
-        infile.read(mesh)
+    if mesh_path is not None:
+        mesh = Mesh()
+        with XDMFFile(os.join(mesh_path, "mesh.xdmf")) as infile:
+            infile.read(mesh)
+        with open(os.join(mesh_path, 'metadata.json'), 'r') as f:
+            metadata = json.load(f)
+
+        channel_width = metadata['width']
+        channel_height = metadata['height']
+        obstacle_condition = " || ".join('(' + metadata['obstacle_condition'] + ')')
+    else:
+        channel = Rectangle(Point(0, 0), Point(1.6, 0.41))
+        obstacle = Circle(Point(0.33, 0.2), 0.05)
+        domain = channel - obstacle
+        mesh = generate_mesh(domain, 64)
+        channel_width = 1.6
+        channel_height = 0.41
+        obstacle_condition = 'on_boundary && x[0]>0.23 && x[0]<0.43 && x[1]>0.1 && x[1]<0.3'
 
     if args.v:
         print(f"{mesh.num_vertices()} vertices in mesh.")
@@ -55,17 +73,17 @@ for sim in range(args.sims):
     
     # Define boundaries
     inflow   = 'near(x[0], 0)'
-    outflow  = 'near(x[0], 2.2)'
-    walls    = 'near(x[1], 0) || near(x[1], 0.41)'
-    cylinder = 'on_boundary && x[0]>0.1 && x[0]<0.3 && x[1]>0.1 && x[1]<0.3'
+    outflow  = f'near(x[0], {channel_width})'
+    walls    = f'near(x[1], 0) || near(x[1], {channel_height})'
+    obstacle = obstacle_condition
     
     # Define inflow profile
-    inflow_profile = ('4.0*1.5*x[1]*(0.41 - x[1]) / pow(0.41, 2)', '0')
+    inflow_profile = (f'4.0*{inflow_peak}*x[1]*({channel_height} - x[1]) / pow({channel_height}, 2)', '0')
     
     # Define boundary conditions
     bcu_inflow = DirichletBC(V, Expression(inflow_profile, degree=2), inflow)
     bcu_walls = DirichletBC(V, Constant((0, 0)), walls)
-    bcu_cylinder = DirichletBC(V, Constant((0, 0)), cylinder)
+    bcu_cylinder = DirichletBC(V, Constant((0, 0)), obstacle)
     bcp_outflow = DirichletBC(Q, Constant(0), outflow)
     bcu = [bcu_inflow, bcu_walls, bcu_cylinder]
     bcp = [bcp_outflow]
@@ -130,7 +148,7 @@ for sim in range(args.sims):
     t = 0
     image_v_locs,image_p_locs = [],[]
     
-    for n in range(num_steps): #num_steps
+    for n in range(22): #num_steps
     
         # Update current time
         t += dt
@@ -231,7 +249,7 @@ for sim in range(args.sims):
         return vertices_on_boundary
     
     vertex_types = []
-    v_inflow, v_outflow, v_walls, v_cylinder  = get_vertices_with_cond(mesh,inflow), get_vertices_with_cond(mesh,outflow), get_vertices_with_cond(mesh,walls), get_vertices_with_cond(mesh,cylinder)
+    v_inflow, v_outflow, v_walls, v_cylinder  = get_vertices_with_cond(mesh,inflow), get_vertices_with_cond(mesh,outflow), get_vertices_with_cond(mesh,walls), get_vertices_with_cond(mesh, obstacle)
     for v in range(mesh.num_vertices()):
         if v in v_inflow and not v in v_walls: #As in deepminds dataset, the four corners are considered boundaries
             vertex_types.append(4)
@@ -243,6 +261,10 @@ for sim in range(args.sims):
             vertex_types.append(0)
             
     sim_data['node_type'] = np.repeat(np.array(vertex_types,dtype=np.int32)[np.newaxis,:,np.newaxis],num_steps,axis=0)
+
+    for k, v in sim_data.items():
+        sim_data[k] = sims_data[k][0::N_save]
+
     sims_data.append(sim_data)
     
     #Remove temp files
