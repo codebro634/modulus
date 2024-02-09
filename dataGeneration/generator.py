@@ -263,7 +263,7 @@ for sim in range(args.sims):
     sim_data['node_type'] = np.repeat(np.array(vertex_types,dtype=np.int32)[np.newaxis,:,np.newaxis],num_steps,axis=0)
 
     for k, v in sim_data.items():
-        sim_data[k] = sims_data[k][(N_save-1)::N_save] #Skip first data points to avoid initial chaos phase
+        sim_data[k] = sim_data[k][(N_save-1)::N_save] #Skip first data points to avoid initial chaos phase
 
     sims_data.append(sim_data)
     
