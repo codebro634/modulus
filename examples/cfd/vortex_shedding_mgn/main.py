@@ -30,9 +30,10 @@ if __name__ == "__main__":
 
     # parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/cylinder_flow", help='Path to the dataset.')
+    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/test", help='Path to the dataset.')
     parser.add_argument('--exp_name', default="model", help='Name of the experiment.')
     parser.add_argument('--exp_group', default="multihop", help='Group of the experiment.')
+    parser.add_argument('--ckp', type=int, help='Number of checkpoint to load. If none is set, the latest is taken.')
     parser.add_argument('--epochs', type=int, default=C.num_training_samples,help='Number of epochs for training.')
     parser.add_argument('--hidden', type=int, default=C.hidden_dim_edge_processor, help='Hidden dim width for edge processor.')
     parser.add_argument('--num_samples', type=int, default=C.num_training_samples, help='Number of different simulation used in training.')
@@ -45,12 +46,12 @@ if __name__ == "__main__":
     parser.add_argument('--train', action='store_true', help='Tracks experiment with wandb.')
     parser.add_argument('--eval', action='store_true', help='Tracks experiment with wandb.')
     args = parser.parse_args()
-
     # Instantiate constants
 
     C.num_test_time_steps = args.num_inf_time_steps
     C.num_test_samples = args.num_inf_samples
     C.num_training_time_steps = args.num_time_steps
+    C.ckp = args.ckp
     C.num_training_samples = args.num_samples
     C.epochs = args.epochs
     C.data_dir = args.data_dir

@@ -112,6 +112,7 @@ class MGNTrainer:
             scheduler=self.scheduler,
             scaler=self.scaler,
             device=dist.device,
+            epoch=C.ckp,
         )
 
         print("Finished MGN Trainer init", flush=True)
