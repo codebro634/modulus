@@ -122,7 +122,7 @@ class MGNRollout:
             )
 
             pred_i = self.model(invar, graph.edata["x"], graph).detach()  # predict
-            pred_i_one_step = self.model(graph.ndata["x"].clone(), graph.edata["x"], graph).detach()
+            pred_i_one_step = self.model(one_step_invar, graph.edata["x"], graph).detach()
 
             # denormalize prediction
             pred_i[:, 0:2] = self.dataset.denormalize(
