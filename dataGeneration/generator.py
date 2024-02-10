@@ -13,6 +13,8 @@ import json
 parser = argparse.ArgumentParser()
 parser.add_argument("--p", action="store_true", help="If set, save gif of the simulation.")
 parser.add_argument("--v", action="store_true", help="Activate verbosity.")
+parser.add_argument("--dt", type=float, default=0.001, help="Delta t.")
+parser.add_argument("--steps", type=int, default=3000, help="Num of simulation steps.")
 parser.add_argument('--dir', default="navier_stokes_cylinder", help='Path to where results are stored')
 parser.add_argument('--mesh', default="meshes/standard", help='Path to mesh. May also be a folder containing meshes.')
 args = parser.parse_args()
@@ -44,8 +46,8 @@ for sim, mesh_path in enumerate(mesh_paths):
     start = time.time()
     
     T = 6.0            # final time
-    num_steps = 6000   # number of time steps
-    dt = T / num_steps # time step size
+    num_steps = args.steps   # number of time steps
+    dt = args.dt # time step size
     N_save = 10 #Every N-th time step is saved
     mu = 0.001         # dynamic viscosity
     rho = 1            # density
