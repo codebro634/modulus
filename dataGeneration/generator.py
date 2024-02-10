@@ -13,16 +13,24 @@ import json
 parser = argparse.ArgumentParser()
 parser.add_argument("--p", action="store_true", help="If set, save gif of the simulation.")
 parser.add_argument("--v", action="store_true", help="Activate verbosity.")
-parser.add_argument('--sims', type=int, default=1, help='Number of simulations to generate data for.')
 parser.add_argument('--dir', default="navier_stokes_cylinder", help='Path to where results are stored')
-parser.add_argument('--mesh', default="meshes/standard", help='Path to mesh')
+parser.add_argument('--mesh', default="meshes/standard", help='Path to mesh. May also be a folder containing meshes.')
 args = parser.parse_args()
 
 results_dir = args.dir
 os.makedirs(results_dir, exist_ok=True)
 
+if args.mesh is None:
+    mesh_paths = [None]
+else:
+    mesh_paths = []
+    for root, dirs, files in os.walk(args.mesh):
+        if 'metadata.json' in files:
+            mesh_paths.append(root)
+
+
 sims_data = [] #One entry for each simulation
-for sim in range(args.sims):
+for sim, mesh_path in enumerate(mesh_paths):
 
     #Plotting params
     num_imgs = 100
@@ -41,8 +49,7 @@ for sim in range(args.sims):
     N_save = 10 #Every N-th time step is saved
     mu = 0.001         # dynamic viscosity
     rho = 1            # density
-    inflow_peak = 0.52
-    mesh_path = args.mesh
+    inflow_peak = 1.25
     
     # Create/Load mesh
     if mesh_path is not None:
@@ -198,7 +205,7 @@ for sim in range(args.sims):
     
     #Create animation
     if args.p:
-        duration = (num_steps // num_imgs) * dt / 2 #Divided by 2 to have a bit of slow-motion
+        duration = (num_steps // num_imgs) * dt / 4 #Divided by 4 to have a bit of slow-motion
         with imageio.get_writer(os.path.join(plot_path,'velocity.gif'), mode='I', duration=duration) as writer:
             for image in image_v_locs:
                 img = imageio.imread(image)

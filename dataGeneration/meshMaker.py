@@ -89,7 +89,7 @@ def squish_object(obj: gObject, xstretch: float = 1.0, ystretch: float = 1.0) ->
     return obj
 
 
-def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [gObject()], mesh_size = 0.0225):
+def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [gObject()], mesh_size = 0.025):
     with pygmsh.geo.Geometry() as geom:
         geo_objects = []
         for obj in objects:
@@ -97,7 +97,7 @@ def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [
                 geo_objects.append(geom.add_circle(
                     x0=obj.args['x0'],
                     radius=obj.args['r'],
-                    mesh_size=mesh_size,
+                    mesh_size=mesh_size/4,
                     num_sections=32,
                     make_surface=False,
                 ))
@@ -108,13 +108,13 @@ def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [
                     ymin=obj.args['x0'][1] - obj.args['h']/2,
                     ymax=obj.args['x0'][1] + obj.args['h']/2,
                     z=0,
-                    mesh_size=mesh_size,
+                    mesh_size=mesh_size/4,
                     make_surface=False,
                 ))
             elif obj.shape == 'tri':
                 geo_objects.append(geom.add_polygon(
                     points=[obj.args['x0'] + [0], obj.args['x1'] + [0], obj.args['x2'] + [0]],
-                    mesh_size=mesh_size,
+                    mesh_size=mesh_size/4,
                     make_surface=False,
                 ))
             else:
