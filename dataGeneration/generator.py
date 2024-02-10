@@ -200,7 +200,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     
         # Print progress
         if args.v:
-            print(f"Progress {t/T}")
+            print(f"Progress {n/num_steps}")
         
     if args.v:
         print(f"Duration: {round(time.time() -  start,3)}s")

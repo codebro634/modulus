@@ -121,11 +121,18 @@ def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [
                 raise Exception(f'Shape {obj.shape} not supported.')
 
         geom.add_rectangle(
-            0.0, width, 0.0, height, 0.0, mesh_size=mesh_size, holes=[obj.curve_loop for obj in geo_objects]
+            0.0, width, 0.0, height/40, 0.0, mesh_size=mesh_size / 2
         )
+        geom.add_rectangle(
+            0.0, width, height-height/40, height, 0.0, mesh_size=mesh_size / 2
+        )
+        geom.add_rectangle(
+            0.0, width, height/40, height-height/40, 0.0, mesh_size=mesh_size, holes=[obj.curve_loop for obj in geo_objects]
+        )
+
         mesh = geom.generate_mesh()
 
-    # pygmsh.optimize(mesh, verbose = True)
+    #pygmsh.optimize(mesh, verbose = True)
 
     # remove z-coordinate
     mesh = meshio.Mesh(mesh.points[:, :2], {"triangle": mesh.get_cells_type("triangle")})

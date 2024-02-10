@@ -119,11 +119,53 @@ class VortexSheddingDataset(DGLDataset):
         noise_mask, self.rollout_mask = [], []
         self.mesh_pos = []
 
+        inflows, circle_centers_x, circle_centers_y, circle_radii = [], [], [], []
         for i in range(self.num_samples):
+
             if i % 20 == 0:
                 print(f"Loaded {i} / {self.num_samples} samples...", flush=True)
             data_np = dataset_iterator.get_next()
             data_np = {key: arr[:num_steps] if isinstance(arr, np.ndarray) else arr[:num_steps].numpy() for key, arr in data_np.items()}
+
+            #Tracking dataset statistics
+            tmp_inf, circle_points_x, circle_points_y = [], [], []
+            for k in range(data_np['mesh_pos'].shape[1]):
+                if data_np['mesh_pos'][0, k, 0].item() < 0.05:
+                    tmp_inf.append(data_np['velocity'][0, k, 0].item())
+                if data_np['node_type'][0,k].item() == 6 and data_np['mesh_pos'][0, k, 1].item() > 0.025 and data_np['mesh_pos'][0, k, 1].item() < 0.375:
+                    circle_points_x.append(data_np['mesh_pos'][0, k, 0])
+                    circle_points_y.append(data_np['mesh_pos'][0, k, 1])
+            inflows.append(np.max(tmp_inf))
+            circle_centers_x.append(np.mean(circle_points_x))
+            circle_centers_y.append(np.mean(circle_points_y))
+            circle_radii.append(circle_centers_x[-1] - np.min(circle_points_x))
+
+
+            #if inflows[-1] >= 1.25 and inflows[-1] <= 1.5 and circle_points_x[-1] >= 0.2 and circle_points_x[-1] <= 0.35:
+            #    print(i, circle_radii[-1], inflows[-1], circle_centers_x[-1], circle_centers_y[-1])
+
+
+            # for j in range(150):
+            #     for i in range(data_np['mesh_pos'].shape[1]):
+            #         if data_np['mesh_pos'][j, i, 0].item() > 2.1999 and data_np['mesh_pos'][j, i, 1].item() > 0.2 and data_np['mesh_pos'][j, i, 1].item() < 0.21:
+            #             #print(data_np['mesh_pos'][j, i])
+            #             print("-----")
+            #             print(data_np['velocity'][j, 325])
+            #             print(data_np['velocity'][j, i])
+            #             break
+
+            # for j in range(10):
+            #     velocities = []
+            #     for i in range(data_np['mesh_pos'].shape[1]):
+            #         if data_np['mesh_pos'][j, i, 0].item() == 0.0:
+            #             #print("-----")
+            #             #print(data_np['mesh_pos'][4, i])
+            #             # print(data_np['node_type'][0, i, 0].item())
+            #             velocities.append(data_np['velocity'][j, i, 1].item())
+            #             #print(data_np['velocity'][4, i])
+            #     velocities.sort()
+            #     print(velocities, len(velocities))
+
             src, dst = self.cell_to_adj(data_np["cells"][0])  # assuming stationary mesh
             graph = self.create_graph(src, dst, dtype=torch.int32)
             graph = self.add_edge_features(graph, data_np["mesh_pos"][0])
@@ -137,13 +179,22 @@ class VortexSheddingDataset(DGLDataset):
                 self.cells.append(data_np["cells"][0])
                 self.rollout_mask.append(self._get_rollout_mask(node_type))
 
+        print(f"Inflow mean: {np.mean(inflows)}, std: {np.std(inflows)}")
+        print(f"Circle center x mean: {np.mean(circle_centers_x)}, std: {np.std(circle_centers_x)}")
+        print(f"Circle center y mean: {np.mean(circle_centers_y)}, std: {np.std(circle_centers_y)}")
+        print(f"Circle radius mean: {np.mean(circle_radii)}, std: {np.std(circle_radii)}")
+
         print("Computing the edge stats...", flush=True)
 
         # compute or load edge data stats
         if self.split == "train":
             self.edge_stats = self._get_edge_stats()
         else:
-            self.edge_stats = load_json(f"{self.data_dir}/edge_stats.json")
+            if not os.path.exists(f"{self.data_dir}/edge_stats.json"):
+                print("Warning: edge_state.json not found. Therefore computing those with the test data set.")
+                self.edge_stats = self._get_edge_stats()
+            else:
+                self.edge_stats = load_json(f"{self.data_dir}/edge_stats.json")
 
         # normalize edge features
         for i in range(num_samples):
@@ -181,7 +232,11 @@ class VortexSheddingDataset(DGLDataset):
         if self.split == "train":
             self.node_stats = self._get_node_stats()
         else:
-            self.node_stats = load_json(f"{self.data_dir}/node_stats.json")
+            if not os.path.exists(f"{self.data_dir}/node_stats.json"):
+                print("Warning: node_stats.json not found. Therefore computing those with the test data set.")
+                self.node_stats = self._get_node_stats()
+            else:
+                self.node_stats = load_json(f"{self.data_dir}/node_stats.json")
 
         # normalize node features
         print("Normalizing the node features...", flush=True)
