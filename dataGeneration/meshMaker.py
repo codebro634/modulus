@@ -203,7 +203,7 @@ def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [
             elif obj.shape == 'tri':
                 geo_objects.append(geom.add_polygon(
                     points=[obj.args['x0'] + [0], obj.args['x1'] + [0], obj.args['x2'] + [0]],
-                    mesh_size=mesh_size/4,
+                    mesh_size=mesh_size,
                     make_surface=False,
                 ))
             else:
