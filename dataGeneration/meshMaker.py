@@ -172,15 +172,24 @@ def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [
         geo_objects = []
         for obj in objects:
             if obj.shape == 'ellipse': #TODO random middle point removen
-                geo_objects.append(add_ellipse(
-                    geo=geom,
-                    x0=obj.args['x0'],
-                    w=obj.args['w'],
-                    h=obj.args['h'],
-                    mesh_size=mesh_size/4,
-                    num_sections=32,
-                    make_surface=False,
-                ))
+                geo_objects.append(
+                    geom.add_circle(
+                        x0=obj.args['x0'],
+                        radius=obj.args['w'],
+                        mesh_size=mesh_size,
+                        num_sections=32,
+                        make_surface=False,
+                    )
+                )
+                # geo_objects.append(add_ellipse(
+                #     geo=geom,
+                #     x0=obj.args['x0'],
+                #     w=obj.args['w'],
+                #     h=obj.args['h'],
+                #     mesh_size=mesh_size,
+                #     num_sections=32,
+                #     make_surface=False,
+                # ))
             elif obj.shape == 'rect':
                 geo_objects.append(geom.add_rectangle(
                     xmin=obj.args['x0'][0] - obj.args['w']/2,
@@ -188,7 +197,7 @@ def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [
                     ymin=obj.args['x0'][1] - obj.args['h']/2,
                     ymax=obj.args['x0'][1] + obj.args['h']/2,
                     z=0,
-                    mesh_size=mesh_size/4,
+                    mesh_size=mesh_size,
                     make_surface=False,
                 ))
             elif obj.shape == 'tri':
@@ -225,9 +234,9 @@ def save_mesh(mesh: meshio.Mesh, metadata: dict, mesh_name: str, folder: str):
     with open(path_metadata, 'w') as f:
         json.dump(metadata, f)
 
-#tri = create_equi_tri([0.33, 0.2], 0.02, -90)
+tri = create_equi_tri([0.33, 0.2], 0.05, -90)
 #tri = squish_object(tri, 1.0, 1.0)
-#rect = create_rect([0.5, 0.2], 0.1, 0.1)
+#rect = create_rect([0.33, 0.2], 0.1, 0.1)
 #circ = create_ellipse([0.33, 0.2], 0.05,0.05)
-#mesh, metadata = create_mesh(objects=[circ])
-#save_mesh(mesh, metadata, 'standard', 'meshes')
+mesh, metadata = create_mesh(objects=[tri])
+save_mesh(mesh, metadata, 'test', 'meshes')

@@ -30,7 +30,7 @@ def standard_cylinder_mesh_set():
 
 def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False, stretching = False, name: str = "mixed"):
     meshes = []
-    num_meshes = 400 + 10 + 1 #Training +  test + intermediate evaluation
+    num_meshes = 0 + 10 + 1 #Training +  test + intermediate evaluation
 
     def make_object(x0):
         ellipse_width = sample_gauss(object_size, 0.02)
@@ -71,10 +71,10 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
 
 #standard_cylinder_mesh_set()
 #mixed_mesh_set(True,True,False,False,False,"2cylinders")
-#mixed_mesh_set(False,True,True,False,False,"cylinder_tri")
+mixed_mesh_set(False,False,True,False,False,"cylinder_tri")
 #mixed_mesh_set(False,True,False,True,False,"cylinder_quad")
 #mixed_mesh_set(False,True,False,False,True,"cylinder_stretch")
-mixed_mesh_set(True,True,True,True,True,"mixed_all")
+#mixed_mesh_set(True,True,True,True,True,"mixed_all")
 
 
 
