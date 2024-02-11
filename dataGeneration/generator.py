@@ -33,6 +33,8 @@ else:
     if args.mesh_range is not None:
         start,end = args.mesh_range.split(',')
         mesh_paths = mesh_paths[int(start):int(end)]
+    if len(mesh_paths) == 0:
+        raise Exception(f"No meshes found in {args.mesh}")
 
 
 sims_data = [] #One entry for each simulation
