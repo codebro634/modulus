@@ -30,12 +30,16 @@ else:
     for root, dirs, files in os.walk(args.mesh):
         if 'metadata.json' in files:
             mesh_paths.append(root)
-    if args.mesh_range is not None:
-        start,end = args.mesh_range.split(',')
-        mesh_paths = mesh_paths[int(start):int(end)]
     if len(mesh_paths) == 0:
         raise Exception(f"No meshes found in {args.mesh}")
+    if args.mesh_range is not None:
+        start,end = args.mesh_range.split(',')
+        assert end > start
+        mesh_paths = mesh_paths[int(start):int(end)]
 
+
+if args.v:
+    print(f"Meshes: {mesh_paths}")
 
 sims_data = [] #One entry for each simulation
 for sim, mesh_path in enumerate(mesh_paths):
