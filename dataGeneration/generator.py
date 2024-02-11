@@ -16,7 +16,7 @@ parser.add_argument("--v", action="store_true", help="Activate verbosity.")
 parser.add_argument("--dt", type=float, default=0.001, help="Delta t.")
 parser.add_argument("--steps", type=int, default=4010, help="Num of simulation steps.")
 parser.add_argument('--dir', default="navier_stokes_cylinder", help='Path to where results are stored')
-parser.add_argument('--mesh', default="meshes/standard", help='Path to mesh. May also be a folder containing meshes.')
+parser.add_argument('--mesh', default=None, help='Path to mesh. May also be a folder containing meshes.')
 parser.add_argument('--mesh_range', default=None, help='Range of meshes to use. If None, all meshes are used.')
 args = parser.parse_args()
 
