@@ -14,9 +14,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--p", action="store_true", help="If set, save gif of the simulation.")
 parser.add_argument("--v", action="store_true", help="Activate verbosity.")
 parser.add_argument("--dt", type=float, default=0.001, help="Delta t.")
-parser.add_argument("--steps", type=int, default=3000, help="Num of simulation steps.")
+parser.add_argument("--steps", type=int, default=4000, help="Num of simulation steps.")
 parser.add_argument('--dir', default="navier_stokes_cylinder", help='Path to where results are stored')
 parser.add_argument('--mesh', default="meshes/standard", help='Path to mesh. May also be a folder containing meshes.')
+parser.add_argument('--mesh_range', default=None, help='Range of meshes to use. If None, all meshes are used.')
 args = parser.parse_args()
 
 results_dir = args.dir
@@ -29,6 +30,9 @@ else:
     for root, dirs, files in os.walk(args.mesh):
         if 'metadata.json' in files:
             mesh_paths.append(root)
+    if args.max_meshes is not None:
+        start,end = args.mesh_range.split(',')
+        mesh_paths = mesh_paths[int(start):int(end)]
 
 
 sims_data = [] #One entry for each simulation
@@ -64,6 +68,8 @@ for sim, mesh_path in enumerate(mesh_paths):
         channel_width = metadata['width']
         channel_height = metadata['height']
         obstacle_condition = " || ".join(['(' + x + ')' for x in metadata['object_boundaries']])
+        if inflow_peak in metadata:
+            inflow_peak = metadata['inflow_peak']
     else:
         channel = Rectangle(Point(0, 0), Point(1.6, 0.41))
         obstacle = Circle(Point(0.33, 0.2), 0.05)
@@ -229,7 +235,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     n = mesh.num_vertices()
     sim_data = dict()
     
-    velocity = np.zeros(shape=(num_steps,n,2),dtype=np.float32)
+    velocity = np.zeros(shape=(num_steps, n, 2),dtype=np.float32)
     times_v = timeseries_u.vector_times()
     for i,t in enumerate(times_v):
         timeseries_u.retrieve(u_.vector(),t)

@@ -31,8 +31,8 @@ import wandb as wb
 
 
 class MGNRollout:
-    def __init__(self, C):
-        #set contants
+    def __init__(self, C, inter_sim=None):
+        #set constants
         self.C = C
 
         # set device
@@ -42,9 +42,12 @@ class MGNRollout:
         self.dataset = VortexSheddingDataset(
             name="vortex_shedding_test",
             data_dir=C.data_dir,
-            split="test",
-            num_samples=C.num_test_samples,
-            num_steps=C.num_test_time_steps,
+            split="test_tiny" if inter_sim is not None else "test",
+            start_step=C.first_step,
+            start_sim=inter_sim if inter_sim is not None else 0,
+            num_samples=C.num_test_samples if inter_sim is None else None,
+            num_steps=C.num_test_time_steps if inter_sim is None else None,
+            verbose = False
         )
 
         # instantiate dataloader
@@ -77,14 +80,14 @@ class MGNRollout:
 
         self.var_identifier = {"u": 0, "v": 1, "p": 2}
 
-    def predict(self):
+    def predict(self, inter_sim=None):
         self.pred, self.exact, self.faces, self.graphs, self.pred_one_step = [], [], [], [], []
         stats = {
             key: value.to(self.device) for key, value in self.dataset.node_stats.items()
         }
 
         """
-            Index 0 veloctiy, 1 pressure + veloctiy
+            Index 0 velocity, 1 pressure + veloctiy
         """
         mse = torch.nn.MSELoss()
         mse_1_step, mse_50_step, mse_all_step = np.zeros(2), np.zeros(2), np.zeros(2)
@@ -210,14 +213,18 @@ class MGNRollout:
                     "RMSE (velo+pressure) all step": rmse_all_step[1],
         }
 
-        with open(os.path.join(self.C.ckpt_path, self.C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
-            for key, value in result_dict.items():
-                out_str = f"{key}: {value}"
-                file.write(out_str+"\n")
-                print(out_str, flush=True)
+        if inter_sim is None:
+            with open(os.path.join(self.C.ckpt_path, self.C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
+                for key, value in result_dict.items():
+                    out_str = f"{key}: {value}"
+                    file.write(out_str+"\n")
+                    print(out_str, flush=True)
 
-        if self.C.wandb_tracking:
-            wb.log(result_dict)
+            if self.C.wandb_tracking:
+                wb.log(result_dict)
+        else:
+            print(f"Inter eval sim {inter_sim}: 1step {rmse_1_step[0]}, 50step {rmse_50_step[0]}, allstep {rmse_all_step[0]}")
+
 
     def init_animation(self, idx):
         self.pred_i = [var[:, idx] for var in self.pred]
@@ -276,17 +283,24 @@ class MGNRollout:
         return self.fig
 
 
-def evaluate_model(C: Constants):
-    print("Rollout started...", flush=True)
-    rollout = MGNRollout(C)
-    idx = [rollout.var_identifier[k] for k in C.viz_vars]
-    rollout.predict()
-    for i in idx:
-        rollout.init_animation(i)
-        ani = animation.FuncAnimation(
-            rollout.fig,
-            rollout.animate,
-            frames=len(rollout.graphs) // C.frame_skip,
-            interval=C.frame_interval,
-        )
-        ani.save(f"animations/{C.ckpt_name.split('.')[0]}_animation_" + C.viz_vars[i] + ".gif")
+def evaluate_model(C: Constants, intermediate_eval: bool = False):
+    if intermediate_eval:
+        rollout = MGNRollout(C,inter_sim=0)
+        num_samples, time_steps = rollout.dataset.num_samples, rollout.dataset.num_steps
+        for i in range(num_samples):
+            rollout = MGNRollout(C,inter_sim=i)
+            rollout.predict(inter_sim=i)
+    else:
+        print("Rollout started...", flush=True)
+        rollout = MGNRollout(C)
+        idx = [rollout.var_identifier[k] for k in C.viz_vars]
+        rollout.predict()
+        for i in idx:
+            rollout.init_animation(i)
+            ani = animation.FuncAnimation(
+                rollout.fig,
+                rollout.animate,
+                frames=len(rollout.graphs) // C.frame_skip,
+                interval=C.frame_interval,
+            )
+            ani.save(f"animations/{C.ckpt_name.split('.')[0]}_animation_" + C.viz_vars[i] + ".gif")

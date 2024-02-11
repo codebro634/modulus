@@ -33,11 +33,13 @@ if __name__ == "__main__":
     parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/cylinder_flow", help='Path to the dataset.')
     parser.add_argument('--exp_name', default="model", help='Name of the experiment.')
     parser.add_argument('--exp_group', default="multihop", help='Group of the experiment.')
+    parser.add_argument('--inter_eval', action='store_true', help='Does tiny intermediate evaluations after each epoch.')
     parser.add_argument('--ckp', type=int, help='Number of checkpoint to load. If none is set, the latest is taken. -1 any checkpoints are ignored.')
     parser.add_argument('--epochs', type=int, default=C.num_training_samples,help='Number of epochs for training.')
     parser.add_argument('--hidden', type=int, default=C.hidden_dim_edge_processor, help='Hidden dim width for edge processor.')
     parser.add_argument('--num_samples', type=int, default=C.num_training_samples, help='Number of different simulation used in training.')
     parser.add_argument('--num_time_steps', type=int, default=C.num_training_time_steps, help='Number of time steps per simulation.')
+    parser.add_argument('--first_step', type=int, default=C.first_step, help='Simulation time step to start from.')
     parser.add_argument('--num_inf_samples', type=int, default=C.num_test_samples, help='Number of different simulation used for inference.')
     parser.add_argument('--num_inf_time_steps', type=int, default=C.num_test_time_steps, help='Number of time steps per simulation used for inference.')
     parser.add_argument('--multihop', default="none", help='Which multihop to use. Choose from {none,sum,sum_concat,concat}.')
@@ -52,6 +54,7 @@ if __name__ == "__main__":
     C.num_test_samples = args.num_inf_samples
     C.num_training_time_steps = args.num_time_steps
     C.ckp = args.ckp
+    C.first_step = args.first_step
     C.num_training_samples = args.num_samples
     C.epochs = args.epochs
     C.data_dir = args.data_dir
@@ -59,6 +62,7 @@ if __name__ == "__main__":
     C.exp_name = args.exp_name
     C.exp_group = args.exp_group
     C.data_dir = args.data_dir
+    C.inter_eval = args.inter_eval
     C.hidden_dim_edge_processor = args.hidden
 
     if args.multihop != "none":

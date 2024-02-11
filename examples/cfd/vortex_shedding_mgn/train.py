@@ -51,6 +51,7 @@ class MGNTrainer:
             name="vortex_shedding_train",
             data_dir=C.data_dir,
             split="train",
+            start_step = C.first_step,
             num_samples=C.num_training_samples,
             num_steps=C.num_training_time_steps,
         )
@@ -197,6 +198,8 @@ def train(C: Constants, dist: DistributedManager):
         with open(os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
             file.write(log_string+ "\n")
         print(log_string, flush=True)
+        if C.inter_eval:
+            evaluate_model(C=C,intermediate_eval=True)
 
         # save checkpoint
         if dist.world_size > 1:

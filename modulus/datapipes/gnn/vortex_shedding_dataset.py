@@ -77,11 +77,13 @@ class VortexSheddingDataset(DGLDataset):
         name="dataset",
         data_dir=None,
         split="train",
-        num_samples=1000,
-        num_steps=600,
+        num_samples=None, #If none, the entire dataset is taken
+        start_step=0,
+        start_sim=0,
+        num_steps=None, #If none, the entire simulation is taken
         noise_std=0.02,
         force_reload=False,
-        verbose=False,
+        verbose=True,
     ):
         super().__init__(
             name=name,
@@ -91,80 +93,39 @@ class VortexSheddingDataset(DGLDataset):
 
         self.data_dir = data_dir
         self.split = split
+        self.start_step = start_step
+        if num_samples is None:
+            dataset_iterator = VortexSheddingDataset.get_dataset_iterator(data_dir, split,start_sim=start_sim)
+            num_samples = 0
+            while True:
+                try:
+                    x = dataset_iterator.get_next()
+                    max_steps = x["mesh_pos"].shape[0]
+                    num_samples += 1
+                except Exception:
+                    break
+        num_samples = num_samples - start_sim
         self.num_samples = num_samples
+        num_steps = num_steps if num_steps is not None else max_steps - start_step
         self.num_steps = num_steps
         self.noise_std = noise_std
-        self.length = num_samples * (num_steps - 1)
+        self.length = self.num_samples * (self.num_steps - 1)
 
-        print(f"Preparing the {split} dataset...", flush=True)
+        if verbose:
+            print(f"Preparing the {split} dataset of {data_dir} ...", flush=True)
         # create the graphs with edge features
-        def get_dataset_iterator():
-            if os.path.exists(self.data_dir + "/" + self.split + ".tfrecord"):
-                return self._load_tf_data(self.data_dir, self.split)
-            elif os.path.exists(self.data_dir + "/" + self.split + ".npy"):
-                dataset = np.load(self.data_dir + "/" + self.split + ".npy", allow_pickle=True)
-                class _dataset_iterator:
-                    def __init__(self, dataset):
-                        self.dataset = dataset
-                        self.i = 0
-                    def get_next(self):
-                        self.i += 1
-                        return self.dataset[self.i-1]
-                return _dataset_iterator(dataset)
-            else:
-                raise FileNotFoundError()
 
-        dataset_iterator = get_dataset_iterator()
+        dataset_iterator = VortexSheddingDataset.get_dataset_iterator(data_dir, split)
         self.graphs, self.cells, self.node_type = [], [], []
         noise_mask, self.rollout_mask = [], []
         self.mesh_pos = []
 
-        inflows, circle_centers_x, circle_centers_y, circle_radii = [], [], [], []
         for i in range(self.num_samples):
 
-            if i % 20 == 0:
+            if i % 20 == 0 and verbose:
                 print(f"Loaded {i} / {self.num_samples} samples...", flush=True)
             data_np = dataset_iterator.get_next()
-            data_np = {key: arr[:num_steps] if isinstance(arr, np.ndarray) else arr[:num_steps].numpy() for key, arr in data_np.items()}
-
-            #Tracking dataset statistics
-            tmp_inf, circle_points_x, circle_points_y = [], [], []
-            for k in range(data_np['mesh_pos'].shape[1]):
-                if data_np['mesh_pos'][0, k, 0].item() < 0.05:
-                    tmp_inf.append(data_np['velocity'][0, k, 0].item())
-                if data_np['node_type'][0,k].item() == 6 and data_np['mesh_pos'][0, k, 1].item() > 0.025 and data_np['mesh_pos'][0, k, 1].item() < 0.375:
-                    circle_points_x.append(data_np['mesh_pos'][0, k, 0])
-                    circle_points_y.append(data_np['mesh_pos'][0, k, 1])
-            inflows.append(np.max(tmp_inf))
-            circle_centers_x.append(np.mean(circle_points_x))
-            circle_centers_y.append(np.mean(circle_points_y))
-            circle_radii.append(circle_centers_x[-1] - np.min(circle_points_x))
-
-
-            #if inflows[-1] >= 1.25 and inflows[-1] <= 1.5 and circle_points_x[-1] >= 0.2 and circle_points_x[-1] <= 0.35:
-            #    print(i, circle_radii[-1], inflows[-1], circle_centers_x[-1], circle_centers_y[-1])
-
-
-            # for j in range(150):
-            #     for i in range(data_np['mesh_pos'].shape[1]):
-            #         if data_np['mesh_pos'][j, i, 0].item() > 2.1999 and data_np['mesh_pos'][j, i, 1].item() > 0.2 and data_np['mesh_pos'][j, i, 1].item() < 0.21:
-            #             #print(data_np['mesh_pos'][j, i])
-            #             print("-----")
-            #             print(data_np['velocity'][j, 325])
-            #             print(data_np['velocity'][j, i])
-            #             break
-
-            # for j in range(10):
-            #     velocities = []
-            #     for i in range(data_np['mesh_pos'].shape[1]):
-            #         if data_np['mesh_pos'][j, i, 0].item() == 0.0:
-            #             #print("-----")
-            #             #print(data_np['mesh_pos'][4, i])
-            #             # print(data_np['node_type'][0, i, 0].item())
-            #             velocities.append(data_np['velocity'][j, i, 1].item())
-            #             #print(data_np['velocity'][4, i])
-            #     velocities.sort()
-            #     print(velocities, len(velocities))
+            data_np = {key: arr[start_step:num_steps+start_step] if isinstance(arr, np.ndarray) else arr[start_step:num_steps+start_step].numpy() for key, arr in data_np.items()}
 
             src, dst = self.cell_to_adj(data_np["cells"][0])  # assuming stationary mesh
             graph = self.create_graph(src, dst, dtype=torch.int32)
@@ -178,20 +139,16 @@ class VortexSheddingDataset(DGLDataset):
                 self.mesh_pos.append(torch.tensor(data_np["mesh_pos"][0]))
                 self.cells.append(data_np["cells"][0])
                 self.rollout_mask.append(self._get_rollout_mask(node_type))
-
-        print(f"Inflow mean: {np.mean(inflows)}, std: {np.std(inflows)}")
-        print(f"Circle center x mean: {np.mean(circle_centers_x)}, std: {np.std(circle_centers_x)}")
-        print(f"Circle center y mean: {np.mean(circle_centers_y)}, std: {np.std(circle_centers_y)}")
-        print(f"Circle radius mean: {np.mean(circle_radii)}, std: {np.std(circle_radii)}")
-
-        print("Computing the edge stats...", flush=True)
+        if verbose:
+            print("Computing the edge stats...", flush=True)
 
         # compute or load edge data stats
         if self.split == "train":
             self.edge_stats = self._get_edge_stats()
         else:
             if not os.path.exists(f"{self.data_dir}/edge_stats.json"):
-                print("Warning: edge_state.json not found. Therefore computing those with the test data set.")
+                if verbose:
+                    print("Warning: edge_state.json not found. Therefore computing those with the test data set.")
                 self.edge_stats = self._get_edge_stats()
             else:
                 self.edge_stats = load_json(f"{self.data_dir}/edge_stats.json")
@@ -205,13 +162,14 @@ class VortexSheddingDataset(DGLDataset):
             )
 
         # create the node features
-        print("Computing the node features...", flush=True)
+        if verbose:
+            print("Computing the node features...", flush=True)
 
-        dataset_iterator = get_dataset_iterator()
+        dataset_iterator = VortexSheddingDataset.get_dataset_iterator(data_dir,split, start_sim=start_sim)
         self.node_features, self.node_targets = [], []
         for i in range(self.num_samples):
             data_np = dataset_iterator.get_next()
-            data_np = {key: arr[:num_steps] if isinstance(arr, np.ndarray) else arr[:num_steps].numpy() for key, arr in data_np.items()}
+            data_np = {key: arr[start_step:num_steps+start_step] if isinstance(arr, np.ndarray) else arr[start_step:num_steps+start_step].numpy() for key, arr in data_np.items()}
             features, targets = {}, {}
             features["velocity"] = self._drop_last(data_np["velocity"])
             targets["velocity"] = self._push_forward_diff(data_np["velocity"])
@@ -233,13 +191,15 @@ class VortexSheddingDataset(DGLDataset):
             self.node_stats = self._get_node_stats()
         else:
             if not os.path.exists(f"{self.data_dir}/node_stats.json"):
-                print("Warning: node_stats.json not found. Therefore computing those with the test data set.")
+                if verbose:
+                    print("Warning: node_stats.json not found. Therefore computing those with the test data set.")
                 self.node_stats = self._get_node_stats()
             else:
                 self.node_stats = load_json(f"{self.data_dir}/node_stats.json")
 
-        # normalize node features
-        print("Normalizing the node features...", flush=True)
+        # normalize node
+        if verbose:
+            print("Normalizing the node features...", flush=True)
         for i in range(num_samples):
             self.node_features[i]["velocity"] = self.normalize_node(
                 self.node_features[i]["velocity"],
@@ -363,23 +323,17 @@ class VortexSheddingDataset(DGLDataset):
         save_json(stats, f"{self.data_dir}/node_stats.json")
         return stats
 
-    def _load_tf_data(self, path, split):
-        """
-        Utility for loading the .tfrecord dataset in DeepMind's MeshGraphNet repo:
-        https://github.com/deepmind/deepmind-research/tree/master/meshgraphnets
-        Follow the instructions provided in that repo to download the .tfrecord files.
-        """
-        dataset = self._load_dataset(path, split)
-        dataset_iterator = tf.data.make_one_shot_iterator(dataset)
-        return dataset_iterator
-
-    def _load_dataset(self, path, split):
+    @staticmethod
+    def _load_tf_data(path, split):
         with open(os.path.join(path, "meta.json"), "r") as fp:
             meta = json.loads(fp.read())
         dataset = tf.data.TFRecordDataset(os.path.join(path, split + ".tfrecord"))
-        return dataset.map(
-            functools.partial(self._parse_data, meta=meta), num_parallel_calls=8
+        dataset = dataset.map(
+            functools.partial(VortexSheddingDataset._parse_data, meta=meta), num_parallel_calls=8
         ).prefetch(tf.data.AUTOTUNE)
+        dataset_iterator = tf.data.make_one_shot_iterator(dataset)
+        return dataset_iterator
+
 
     @staticmethod
     def cell_to_adj(cells):
@@ -494,3 +448,28 @@ class VortexSheddingDataset(DGLDataset):
                 data = tf.RaggedTensor.from_row_lengths(data, row_lengths=row_len)
             outvar[k] = data
         return outvar
+
+    @staticmethod
+    def get_dataset_iterator(data_dir, split, start_sim = 0):
+        if os.path.exists(data_dir + "/" + split + ".tfrecord"):
+            itr = VortexSheddingDataset._load_tf_data(data_dir, split)
+            [itr.get_next() for _ in range(start_sim)]
+            return itr
+        elif os.path.exists(data_dir + "/" + split + ".npy"):
+            dataset = np.load(data_dir + "/" + split + ".npy", allow_pickle=True)
+
+            class _dataset_iterator:
+                def __init__(self, dataset):
+                    self.dataset = dataset
+                    self.i = 0
+
+                def get_next(self):
+                    self.i += 1
+                    if self.i > len(self.dataset):
+                        raise StopIteration
+                    else:
+                        return self.dataset[self.i - 1 + start_sim]
+
+            return _dataset_iterator(dataset)
+        else:
+            raise FileNotFoundError("No dataset found in " + data_dir + " for " + split)

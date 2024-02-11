@@ -30,6 +30,7 @@ class Constants(BaseModel):
     # training configs
     batch_size: int = 1
     epochs: int = 25
+    first_step: int = 0  # start time step
     num_training_samples: int = 400
     num_training_time_steps: int = 300
     lr: float = 0.0001
@@ -47,6 +48,7 @@ class Constants(BaseModel):
     jit: bool = False
 
     # test & visualization configs
+    inter_eval: bool = False
     num_test_samples: int = 10
     num_test_time_steps: int = 300
     viz_vars: Tuple[str, ...] = ("u", "v", "p")
