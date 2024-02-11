@@ -248,6 +248,6 @@ circ = create_ellipse([0.33, 0.2], 0.05,0.05)
 mesh, metadata = create_mesh(objects=[circ], x=True)
 d,p = mesh.cells,mesh.points
 mesh, metadata = create_mesh(objects=[circ], x=False)
-mesh.cells = d
-mesh.points = p
+#mesh.cells = d
+#mesh.points = p
 save_mesh(mesh, metadata, 'test', 'meshes')
