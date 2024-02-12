@@ -15,7 +15,7 @@ parser.add_argument("--p", action="store_true", help="If set, save gif of the si
 parser.add_argument("--v", action="store_true", help="Activate verbosity.")
 parser.add_argument("--dt", type=float, default=0.001, help="Delta t.")
 parser.add_argument("--steps", type=int, default=4010, help="Num of simulation steps.")
-parser.add_argument('--dir', default="navier_stokes_cylinder", help='Path to where results are stored')
+parser.add_argument('--dir', default="datasets/test", help='Path to where results are stored')
 parser.add_argument('--mesh', default=None, help='Path to mesh. May also be a folder containing meshes.')
 parser.add_argument('--mesh_range', default=None, help='Range of meshes to use. If None, all meshes are used.')
 args = parser.parse_args()
@@ -41,7 +41,7 @@ else:
 if args.v:
     print(f"Meshes: {mesh_paths}")
 
-sims_data = [] #One entry for each simulation
+sims_data = [], failed_meshes = [] #One entry for each simulation
 for sim, mesh_path in enumerate(mesh_paths):
 
     #Plotting params
@@ -175,20 +175,23 @@ for sim, mesh_path in enumerate(mesh_paths):
     
         # Update current time
         t += dt
-    
-        # Step 1: Tentative velocity step
-        b1 = assemble(L1)
-        [bc.apply(b1) for bc in bcu]
-        solve(A1, u_.vector(), b1, 'bicgstab', 'hypre_amg')
-    
-        # Step 2: Pressure correction step
-        b2 = assemble(L2)
-        [bc.apply(b2) for bc in bcp]
-        solve(A2, p_.vector(), b2, 'bicgstab', 'hypre_amg')
-    
-        # Step 3: Velocity correction step
-        b3 = assemble(L3)
-        solve(A3, u_.vector(), b3, 'cg', 'sor')
+
+        try:
+            # Step 1: Tentative velocity step
+            b1 = assemble(L1)
+            [bc.apply(b1) for bc in bcu]
+            solve(A1, u_.vector(), b1, 'bicgstab', 'hypre_amg')
+
+            # Step 2: Pressure correction step
+            b2 = assemble(L2)
+            [bc.apply(b2) for bc in bcp]
+            solve(A2, p_.vector(), b2, 'bicgstab', 'hypre_amg')
+
+            # Step 3: Velocity correction step
+            b3 = assemble(L3)
+            solve(A3, u_.vector(), b3, 'cg', 'sor')
+        except RuntimeError:
+            failed_meshes.append(mesh_path)
     
         # Plot solution
         if args.p and n % (num_steps // num_imgs) == 0:
@@ -295,5 +298,6 @@ for sim, mesh_path in enumerate(mesh_paths):
     os.remove(tpt+".h5")
     
 np.save(results_dir+"/simdata.npy",sims_data)
+np.savetxt("test.txt",failed_meshes, delimiter=',', fmt="%s")
 
 

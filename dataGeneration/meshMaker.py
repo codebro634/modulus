@@ -6,8 +6,6 @@ import math
 import os
 import json
 
-from pygmsh.geo.geometry import Circle
-
 class gObject:
 
     def __init__(self, shape: str = 'rect', args:dict = {'x0': [0.33, 0.2], 'x1': [0.38, 0], 'x2': [0.33, 0.25]}):
@@ -128,85 +126,7 @@ def squish_object(obj: gObject, xstretch: float = 1.0, ystretch: float = 1.0) ->
         raise Exception(f'Shape {obj.shape} not supported for squishing.')
     return obj
 
-
-def add_ellipse(
-    geo,
-    x0: list[float],
-    w: float,
-    h: float,
-    mesh_size: float | None = None,
-    R=None,
-    compound=False,
-    num_sections: int = 3,
-    holes=None,
-    make_surface: bool = True,
-):
-    """Add ellipse in the :math:`x`-:math:`y`-plane."""
-    if holes is None:
-        holes = []
-    else:
-        assert make_surface
-
-    # Define points that make the ellipse (midpoint and the four cardinal
-    # directions).
-    X = np.zeros((num_sections + 1, len(x0)))
-    if num_sections == 4:
-        # For accuracy, the points are provided explicitly.
-        X[1:, [0, 1]] = np.array(
-            [[w, 0.0], [0.0, h], [-w, 0.0], [0.0, -h]]
-        )
-    else:
-        X[1:, [0, 1]] = np.array(
-            [
-                [
-                    w * np.cos(2 * np.pi * k / num_sections),
-                    h * np.sin(2 * np.pi * k / num_sections),
-                ]
-                for k in range(num_sections)
-            ]
-        )
-
-    if R is not None:
-        assert np.allclose(
-            abs(np.linalg.eigvals(R)), np.ones(X.shape[1])
-        ), "The transformation matrix doesn't preserve ellipses; at least one eigenvalue lies off the unit ellipse."
-        X = np.dot(X, R.T)
-
-    X += x0
-
-    # Add Gmsh Points.
-    p = [geo.add_point(x, mesh_size=mesh_size) for x in X]
-    point_on_major_axis = geo.add_point(np.array([x0[0] - w/2, x0[1]]), mesh_size=mesh_size)
-
-    arcs = [
-        geo.add_ellipse_arc(p[k], p[0], point_on_major_axis, p[k + 1]) for k in range(1, len(p) - 1)
-    ] + [geo.add_ellipse_arc(p[-1], p[0], point_on_major_axis, p[1])]
-
-    if compound:
-        geo._COMPOUND_ENTITIES.append((1, [arc._id for arc in arcs]))
-
-    curve_loop = geo.add_curve_loop(arcs)
-
-    if make_surface:
-        plane_surface = geo.add_plane_surface(curve_loop, holes)
-        if compound:
-            geo._COMPOUND_ENTITIES.append((2, [plane_surface._id]))
-    else:
-        plane_surface = None
-
-    return Circle(
-        x0,
-        (w+h)/2,
-        R,
-        compound,
-        num_sections,
-        holes,
-        curve_loop,
-        plane_surface,
-        mesh_size=mesh_size,
-    )
-
-def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [gObject()], mesh_size = 0.0225, x = False):
+def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [gObject()], mesh_size = 0.0225):
     with pygmsh.geo.Geometry() as geom:
         geo_objects = []
         for obj in objects:
@@ -221,36 +141,7 @@ def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [
                         make_surface=False,
                     )
                 )
-                # if x:
-                #     geo_objects.append(
-                #         geom.add_circle(
-                #             x0=obj.args['x0'],
-                #             radius=obj.args['w'],
-                #             mesh_size=mesh_size,
-                #             num_sections=32,
-                #             make_surface=False,
-                #         )
-                #     )
-                # else:
-                #     geo_objects.append(add_ellipse(
-                #         geo=geom,
-                #         x0=obj.args['x0'],
-                #         w=obj.args['w'],
-                #         h=obj.args['h'],
-                #         mesh_size=mesh_size,
-                #         num_sections=32,
-                #         make_surface=False,
-                #     ))
             elif obj.shape == 'rect':
-                # geo_objects.append(geom.add_rectangle(
-                #     xmin=obj.args['x0'][0] - obj.args['w']/2,
-                #     xmax=obj.args['x0'][0] + obj.args['w']/2,
-                #     ymin=obj.args['x0'][1] - obj.args['h']/2,
-                #     ymax=obj.args['x0'][1] + obj.args['h']/2,
-                #     z=0,
-                #     mesh_size=mesh_size,
-                #     make_surface=False,
-                # ))
                 geo_objects.append(geom.add_polygon(
                     points=[obj.args['x0'], obj.args['x1'], obj.args['x2'], obj.args['x3']],
                     mesh_size=mesh_size,
@@ -297,7 +188,7 @@ def print_object(obj: object):
 #tri = create_equi_tri([0.33, 0.2], 0.05)
 #tri = squish_object(tri, 1.0, 1.0)
 #rect = rotate_object(create_rect([0.33, 0.2], 0.05, 0.1),45)
-circ = create_ellipse([0.33, 0.2], 0.05,0.05)
-mesh, metadata = create_mesh(objects=[circ], x=True)
+#circ = create_ellipse([0.33, 0.2], 0.1,0.05)
+#mesh, metadata = create_mesh(objects=[circ])
 
-save_mesh(mesh, metadata, 'test', 'meshes')
+#save_mesh(mesh, metadata, 'test', 'meshes')
