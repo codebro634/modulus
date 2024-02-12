@@ -12,7 +12,7 @@ import json
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--p", action="store_true", help="If set, save gif of the simulation.")
-parser.add_argument("--v", action="store_true", help="Activate verbosity.")
+parser.add_argument("--v", type=int, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt", type=float, default=0.001, help="Delta t.")
 parser.add_argument("--steps", type=int, default=4010, help="Num of simulation steps.")
 parser.add_argument('--dir', default="datasets/test", help='Path to where results are stored')
@@ -81,10 +81,10 @@ for sim, mesh_path in enumerate(mesh_paths):
         channel_height = 0.41
         obstacle_condition = 'on_boundary && x[0]>0.23 && x[0]<0.43 && x[1]>0.1 && x[1]<0.3'
 
-    if args.v:
-        print(f"{mesh.num_vertices()} vertices in mesh.")
-        print(f"Width: {channel_width}, Height: {channel_height}")
-        print(f"Obstacle condition: {obstacle_condition}")
+    if args.v > 0:
+        print(f"{mesh.num_vertices()} vertices in mesh.",flush=True)
+        print(f"Width: {channel_width}, Height: {channel_height}",flush=True)
+        print(f"Obstacle condition: {obstacle_condition}",flush=True)
     
     # Define function spaces
     V = VectorFunctionSpace(mesh, 'P', 2)
@@ -187,7 +187,7 @@ for sim, mesh_path in enumerate(mesh_paths):
             b3 = assemble(L3)
             solve(A3, u_.vector(), b3, 'cg', 'sor')
         except RuntimeError:
-            print(f"Error raised at time step {n} for mesh {mesh_path}.")
+            print(f"Error raised at time step {n} for mesh {mesh_path}.",flush=True)
             failed_meshes.append(mesh_path)
             error_raised = True
             break
@@ -213,8 +213,10 @@ for sim, mesh_path in enumerate(mesh_paths):
         p_n.assign(p_)
     
         # Print progress
-        if args.v:
-            print(f"Progress {n/num_steps}")
+        if args.v == 2:
+            print(f"Progress {n/num_steps}",flush=True)
+        elif args.v == 1 and n%100 == 0:
+            print(f"Progress {n/num_steps}",flush=True)
 
     if error_raised:
         if os.path.exists(tut + ".h5"):
@@ -223,8 +225,8 @@ for sim, mesh_path in enumerate(mesh_paths):
             os.remove(tpt + ".h5")
         continue
 
-    if args.v:
-        print(f"Duration: {round(time.time() -  start,3)}s")
+    if args.v > 0:
+        print(f"Duration: {round(time.time() -  start,3)}s",flush=True)
     
     #Create animation
     if args.p:
