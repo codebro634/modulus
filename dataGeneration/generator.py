@@ -41,7 +41,7 @@ else:
 if args.v:
     print(f"Meshes: {mesh_paths}")
 
-sims_data = [], failed_meshes = [] #One entry for each simulation
+sims_data, failed_meshes = [], [] #One entry for each simulation
 for sim, mesh_path in enumerate(mesh_paths):
 
     #Plotting params
