@@ -37,10 +37,6 @@ else:
         assert end > start
         mesh_paths = mesh_paths[int(start):int(end)]
 
-
-if args.v:
-    print(f"Meshes: {mesh_paths}")
-
 sims_data, failed_meshes = [], [] #One entry for each simulation
 for sim, mesh_path in enumerate(mesh_paths):
 
@@ -221,8 +217,10 @@ for sim, mesh_path in enumerate(mesh_paths):
             print(f"Progress {n/num_steps}")
 
     if error_raised:
-        os.remove(tut + ".h5")
-        os.remove(tpt + ".h5")
+        if os.path.exists(tut + ".h5"):
+            os.remove(tut + ".h5")
+        if os.path.exists(tpt + ".h5"):
+            os.remove(tpt + ".h5")
         continue
 
     if args.v:
