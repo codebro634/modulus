@@ -306,6 +306,6 @@ for sim, mesh_path in enumerate(mesh_paths):
     os.remove(tpt+".h5")
     
 np.save(results_dir+"/simdata.npy",sims_data)
-np.savetxt("test.txt",failed_meshes, delimiter=',', fmt="%s")
+np.savetxt(results_dir+"failed_meshes.txt",failed_meshes, delimiter=',', fmt="%s")
 
 
