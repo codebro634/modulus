@@ -66,7 +66,7 @@ def create_ellipse(mid, w,h) -> gObject:
     return gObject(shape='ellipse', args={'x0': mid, 'w': w, 'h': h })
 
 def create_rect(mid, w, h) -> gObject:
-    return gObject(shape='rect', args={'x0': [mid[0]+w, mid[1]+h], 'x1': [mid[0]-w, mid[1]+h], 'x2': [mid[0]-w, mid[1]-h], 'x3': [mid[0]+w, mid[1]-h]})
+    return gObject(shape='rect', args={'x0': [mid[0]+w/2, mid[1]+h/2], 'x1': [mid[0]-w/2, mid[1]+h/2], 'x2': [mid[0]-w/2, mid[1]-h/2], 'x3': [mid[0]+w/2, mid[1]-h/2]})
 
 def rotate(x, y, angle):
     angle = math.radians(angle)
@@ -188,7 +188,6 @@ def print_object(obj: object):
 #tri = create_equi_tri([0.33, 0.2], 0.05)
 #tri = squish_object(tri, 1.0, 1.0)
 #rect = rotate_object(create_rect([0.33, 0.2], 0.05, 0.1),45)
-#circ = create_ellipse([0.33, 0.2], 0.1,0.05)
+#circ = create_ellipse([0.33, 0.2], 0.05,0.05)
 #mesh, metadata = create_mesh(objects=[circ])
-
 #save_mesh(mesh, metadata, 'test', 'meshes')

@@ -36,17 +36,17 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
         ellipse_width = sample_gauss(object_size, 0.02)
         ellipse_height = sample_gauss(object_size, 0.02) if stretching else ellipse_width
 
-        angle = np.random.rand() * 180 if rotate else 0
-
         triangle_size = sample_gauss(object_size*1.5, 0.02)
         triangle_squish = sample_gauss(1, 0.2)
+        triangle_angle = np.random.rand() * 180 if rotate else 0
 
-        rect_width = sample_gauss(2*object_size, 0.04)
-        rect_height = sample_gauss(2*object_size, 0.04) if stretching else rect_width
+        rect_width = sample_gauss(math.sqrt(2)*object_size, 0.02)
+        rect_height = sample_gauss(math.sqrt(2)*object_size, 0.02) if stretching else rect_width
+        rect_angle = (-45 + np.random.rand() * 90) if rotate else 0
 
         ellipse = create_ellipse(x0, ellipse_width, ellipse_height)
-        tri = rotate_object(squish_object(create_equi_tri(x0, triangle_size), triangle_squish if stretching else 1, 1/triangle_squish if stretching else 1),angle)
-        rect = rotate_object(create_rect(x0, rect_width, rect_height),angle)
+        tri = rotate_object(squish_object(create_equi_tri(x0, triangle_size), triangle_squish if stretching else 1, 1/triangle_squish if stretching else 1),triangle_angle)
+        rect = rotate_object(create_rect(x0, rect_width, rect_height),rect_angle)
 
         objects = []
         objects.append(ellipse) if circles else None
@@ -59,10 +59,13 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
         if i %20== 0:
             print(f"Generating mesh {i+1} of {num_meshes}")
         x0 = [sample_gauss(object_x_mid, 0.1, 2), sample_gauss(object_y_mid, 0.05, 2)]
+
         objects = [make_object(x0)] if i > 0 else [create_ellipse([object_x_mid,object_y_mid], object_size, object_size)]
+        #print(objects[0].shape, objects[0].args)
         if np.random.rand() <= 0.25 and two_objs and i > 0: #Make it 'rare' to have two objects
             x0 = [sample_gauss(object_x_mid + 0.5, 0.1), sample_gauss(object_y_mid, 0.05)]
             objects.append(make_object(x0))
+            #print(objects[1].shape, objects[1].args)
         meshes.append(create_mesh(height=height,width=width,objects=objects))
         meshes[-1][1]["inflow_peak"] = round(sample_gauss(inflow_peak,inflow_std), 2) if i > 0 else inflow_peak
 
@@ -72,8 +75,7 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
 
 #standard_cylinder_mesh_set()
 #mixed_mesh_set(True,True,False,False,False,False,"2cylinders")
-#mixed_mesh_set(False,True,True,False,False,True,"cylinder_tri")
-#mixed_mesh_set(False,True,False,True,False,True,"cylinder_quad")
+#mixed_mesh_set(False,True,True,True,False,True,"cylinder_tri_quad")
 #mixed_mesh_set(False,True,False,False,True,False,"cylinder_stretch")
 #mixed_mesh_set(True,True,True,True,True,True,"mixed_all")
 
