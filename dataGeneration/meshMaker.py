@@ -10,7 +10,7 @@ from pygmsh.geo.geometry import Circle
 
 class gObject:
 
-    def __init__(self, shape: str = 'tri', args:dict = {'x0': [0.33, 0.2], 'x1': [0.38, 0], 'x2': [0.33, 0.25]}):
+    def __init__(self, shape: str = 'rect', args:dict = {'x0': [0.33, 0.2], 'x1': [0.38, 0], 'x2': [0.33, 0.25]}):
         self.shape = shape
         self.args = args
 
@@ -22,10 +22,14 @@ class gObject:
                    f"x[1]>{round(self.args['x0'][1] - tol - self.args['h'],dp)} && " \
                    f"x[1]< {round(self.args['x0'][1] + tol + self.args['h'],dp)}"
         elif self.shape == 'rect':
-            return f"on_boundary && x[0]>{round(self.args['x0'][0] - tol - self.args['w']/2,dp)} && " \
-                   f"x[0]< {round(self.args['x0'][0] + tol + self.args['w']/2,dp)} && " \
-                   f"x[1]>{round(self.args['x0'][1] - tol - self.args['h']/2,dp)} &&" \
-                   f" x[1]< {round(self.args['x0'][1] + tol + self.args['h']/2,dp)}"
+            xmin = min(self.args['x0'][0], self.args['x1'][0], self.args['x2'][0], self.args['x3'][0])
+            xmax = max(self.args['x0'][0], self.args['x1'][0], self.args['x2'][0], self.args['x3'][0])
+            ymin = min(self.args['x0'][1], self.args['x1'][1], self.args['x2'][1], self.args['x3'][1])
+            ymax = max(self.args['x0'][1], self.args['x1'][1], self.args['x2'][1], self.args['x3'][1])
+            return f"on_boundary && x[0]>{round(xmin - tol,dp)} && " \
+                      f"x[0]< {round(xmax + tol,dp)} && " \
+                        f"x[1]>{round(ymin - tol,dp)} && " \
+                        f"x[1]< {round(ymax + tol,dp)}"
         elif self.shape == 'tri':
             return f"on_boundary && x[0]>{round(min(self.args['x0'][0], self.args['x1'][0], self.args['x2'][0]) - tol,dp)} && " \
                    f"x[0]< {round(max(self.args['x0'][0], self.args['x1'][0], self.args['x2'][0]) + tol,dp)} && " \
@@ -43,6 +47,12 @@ def move_object(obj: gObject, dx:float = 0.0, dy:float = 0.0) -> gObject:
     elif obj.shape == 'rect':
         obj.args['x0'][0] += dx
         obj.args['x0'][1] += dy
+        obj.args['x1'][0] += dx
+        obj.args['x1'][1] += dy
+        obj.args['x2'][0] += dx
+        obj.args['x2'][1] += dy
+        obj.args['x3'][0] += dx
+        obj.args['x3'][1] += dy
     elif obj.shape == 'tri':
         obj.args['x0'][0] += dx
         obj.args['x0'][1] += dy
@@ -58,16 +68,38 @@ def create_ellipse(mid, w,h) -> gObject:
     return gObject(shape='ellipse', args={'x0': mid, 'w': w, 'h': h })
 
 def create_rect(mid, w, h) -> gObject:
-    return gObject(shape='rect', args={'x0': mid, 'w': w, 'h': h})
+    return gObject(shape='rect', args={'x0': [mid[0]+w, mid[1]+h], 'x1': [mid[0]-w, mid[1]+h], 'x2': [mid[0]-w, mid[1]-h], 'x3': [mid[0]+w, mid[1]-h]})
 
-def create_equi_tri(mid, r, angle) -> gObject:
+def rotate(x, y, angle):
+    angle = math.radians(angle)
+    return [(x[0] - y[0]) * math.cos(angle) - (x[1] - y[1]) * math.sin(angle) + y[0],
+            (x[0] - y[0]) * math.sin(angle) + (x[1] - y[1]) * math.cos(angle) + y[1]]
+
+def rotate_object(obj: gObject, angle: float) -> gObject:
+    obj = deepcopy(obj)
+    if obj.shape == 'ellipse':
+        return obj
+    elif obj.shape == 'rect':
+        mid = (obj.args['x0'][0] + obj.args['x1'][0] + obj.args['x2'][0] + obj.args['x3'][0]) /4, (obj.args['x0'][1] + obj.args['x1'][1] + obj.args['x2'][1] + obj.args['x3'][1]) /4
+        obj.args['x0'] = rotate(obj.args['x0'], mid, angle)
+        obj.args['x1'] = rotate(obj.args['x1'], mid, angle)
+        obj.args['x2'] = rotate(obj.args['x2'], mid, angle)
+        obj.args['x3'] = rotate(obj.args['x3'], mid, angle)
+        return obj
+    elif obj.shape == 'tri':
+        mid = [(obj.args['x0'][0] + obj.args['x1'][0] + obj.args['x2'][0])/3, (obj.args['x0'][1] + obj.args['x1'][1] + obj.args['x2'][1])/3]
+        obj.args['x0'] = rotate(obj.args['x0'], mid, angle)
+        obj.args['x1'] = rotate(obj.args['x1'], mid, angle)
+        obj.args['x2'] = rotate(obj.args['x2'], mid, angle)
+        return obj
+    else:
+        raise Exception(f'Shape {obj.shape} not supported for rotation')
+
+def create_equi_tri(mid, r) -> gObject:
     a = math.radians(60)
     corners = [mid[0] , mid[1] - r], [mid[0] + r*math.sin(a), mid[1] + r*math.cos(a)], [mid[0] - r*math.sin(a), mid[1] + r*math.cos(a)]
-    def rotate(x, y, angle):
-        angle = math.radians(angle)
-        return [(x[0]-y[0])*math.cos(angle) - (x[1]-y[1])*math.sin(angle) + y[0], (x[0]-y[0])*math.sin(angle) + (x[1]-y[1])*math.cos(angle) + y[1]]
-    corners = [rotate(x, mid, angle) for x in corners]
-    return gObject(shape='tri', args={'x0': corners[0], 'x1': corners[1], 'x2': corners[2]})
+    tri = gObject(shape='tri', args={'x0': corners[0], 'x1': corners[1], 'x2': corners[2]})
+    return rotate_object(tri, 30)
 
 def squish_object(obj: gObject, xstretch: float = 1.0, ystretch: float = 1.0) -> gObject:
     obj = deepcopy(obj)
@@ -75,8 +107,15 @@ def squish_object(obj: gObject, xstretch: float = 1.0, ystretch: float = 1.0) ->
         obj.args['w'] *= xstretch
         obj.args['h'] *= ystretch
     elif obj.shape == 'rect':
-        obj.args['h'] *= ystretch
-        obj.args['w'] *= xstretch
+        mid = (obj.args['x0'][0] + obj.args['x1'][0] + obj.args['x2'][0] + obj.args['x3'][0]) /4, (obj.args['x0'][1] + obj.args['x1'][1] + obj.args['x2'][1] + obj.args['x3'][1]) /4
+        obj.args['x0'][0] = mid[0] + (obj.args['x0'][0] - mid[0])*xstretch
+        obj.args['x0'][1] = mid[1] + (obj.args['x0'][1] - mid[1])*ystretch
+        obj.args['x1'][0] = mid[0] + (obj.args['x1'][0] - mid[0])*xstretch
+        obj.args['x1'][1] = mid[1] + (obj.args['x1'][1] - mid[1])*ystretch
+        obj.args['x2'][0] = mid[0] + (obj.args['x2'][0] - mid[0])*xstretch
+        obj.args['x2'][1] = mid[1] + (obj.args['x2'][1] - mid[1])*ystretch
+        obj.args['x3'][0] = mid[0] + (obj.args['x3'][0] - mid[0])*xstretch
+        obj.args['x3'][1] = mid[1] + (obj.args['x3'][1] - mid[1])*ystretch
     elif obj.shape == 'tri':
         mid = [(obj.args['x0'][0] + obj.args['x1'][0] + obj.args['x2'][0])/3, (obj.args['x0'][1] + obj.args['x1'][1] + obj.args['x2'][1])/3]
         obj.args['x0'][0] = mid[0] + (obj.args['x0'][0] - mid[0])*xstretch
@@ -171,34 +210,49 @@ def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [
     with pygmsh.geo.Geometry() as geom:
         geo_objects = []
         for obj in objects:
-            if obj.shape == 'ellipse': #TODO random middle point removen
-                if x:
-                    geo_objects.append(
-                        geom.add_circle(
-                            x0=obj.args['x0'],
-                            radius=obj.args['w'],
-                            mesh_size=mesh_size,
-                            num_sections=32,
-                            make_surface=False,
-                        )
-                    )
-                else:
-                    geo_objects.append(add_ellipse(
-                        geo=geom,
-                        x0=obj.args['x0'],
-                        w=obj.args['w'],
-                        h=obj.args['h'],
+            if obj.shape == 'ellipse':
+                num_sections = 32
+                points =  [(obj.args['x0'][0] + obj.args['w'] * np.cos(2 * np.pi * k / num_sections),
+                            obj.args['x0'][1] + obj.args['h'] * np.sin(2 * np.pi * k / num_sections)) for k in range(num_sections) ]
+                geo_objects.append(
+                    geom.add_polygon(
+                        points=points,
                         mesh_size=mesh_size,
-                        num_sections=32,
                         make_surface=False,
-                    ))
+                    )
+                )
+                # if x:
+                #     geo_objects.append(
+                #         geom.add_circle(
+                #             x0=obj.args['x0'],
+                #             radius=obj.args['w'],
+                #             mesh_size=mesh_size,
+                #             num_sections=32,
+                #             make_surface=False,
+                #         )
+                #     )
+                # else:
+                #     geo_objects.append(add_ellipse(
+                #         geo=geom,
+                #         x0=obj.args['x0'],
+                #         w=obj.args['w'],
+                #         h=obj.args['h'],
+                #         mesh_size=mesh_size,
+                #         num_sections=32,
+                #         make_surface=False,
+                #     ))
             elif obj.shape == 'rect':
-                geo_objects.append(geom.add_rectangle(
-                    xmin=obj.args['x0'][0] - obj.args['w']/2,
-                    xmax=obj.args['x0'][0] + obj.args['w']/2,
-                    ymin=obj.args['x0'][1] - obj.args['h']/2,
-                    ymax=obj.args['x0'][1] + obj.args['h']/2,
-                    z=0,
+                # geo_objects.append(geom.add_rectangle(
+                #     xmin=obj.args['x0'][0] - obj.args['w']/2,
+                #     xmax=obj.args['x0'][0] + obj.args['w']/2,
+                #     ymin=obj.args['x0'][1] - obj.args['h']/2,
+                #     ymax=obj.args['x0'][1] + obj.args['h']/2,
+                #     z=0,
+                #     mesh_size=mesh_size,
+                #     make_surface=False,
+                # ))
+                geo_objects.append(geom.add_polygon(
+                    points=[obj.args['x0'], obj.args['x1'], obj.args['x2'], obj.args['x3']],
                     mesh_size=mesh_size,
                     make_surface=False,
                 ))
@@ -240,14 +294,10 @@ def print_object(obj: object):
     for attr_name, attr_value in vars(obj).items():
         print(attr_name, attr_value)
 
-#tri = create_equi_tri([0.33, 0.2], 0.05, -90)
+#tri = create_equi_tri([0.33, 0.2], 0.05)
 #tri = squish_object(tri, 1.0, 1.0)
-#rect = create_rect([0.33, 0.2], 0.1, 0.1)
-
+#rect = rotate_object(create_rect([0.33, 0.2], 0.05, 0.1),45)
 circ = create_ellipse([0.33, 0.2], 0.05,0.05)
 mesh, metadata = create_mesh(objects=[circ], x=True)
-d,p = mesh.cells,mesh.points
-mesh, metadata = create_mesh(objects=[circ], x=False)
-#mesh.cells = d
-#mesh.points = p
+
 save_mesh(mesh, metadata, 'test', 'meshes')

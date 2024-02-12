@@ -28,7 +28,7 @@ def standard_cylinder_mesh_set():
     for i, mesh in enumerate(meshes):
         save_mesh(mesh[0],mesh[1], f"mesh{i+1}", "meshes/standard_cylinder")
 
-def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False, stretching = False, name: str = "mixed"):
+def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False, stretching = False, rotate = False, name: str = "mixed"):
     meshes = []
     num_meshes = 0 + 10 + 1 #Training +  test + intermediate evaluation
 
@@ -36,16 +36,17 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
         ellipse_width = sample_gauss(object_size, 0.02)
         ellipse_height = sample_gauss(object_size, 0.02) if stretching else ellipse_width
 
+        angle = np.random.rand() * 180 if rotate else 0
+
         triangle_size = sample_gauss(object_size*1.5, 0.02)
-        triangle_angle = np.random.rand()*180
         triangle_squish = sample_gauss(1, 0.2)
 
         rect_width = sample_gauss(2*object_size, 0.04)
         rect_height = sample_gauss(2*object_size, 0.04) if stretching else rect_width
 
         ellipse = create_ellipse(x0, ellipse_width, ellipse_height)
-        tri = squish_object(create_equi_tri(x0, triangle_size, triangle_angle), triangle_squish if stretching else 1, 1/triangle_squish if stretching else 1)
-        rect = create_rect(x0, rect_width, rect_height)
+        tri = rotate_object(squish_object(create_equi_tri(x0, triangle_size), triangle_squish if stretching else 1, 1/triangle_squish if stretching else 1),angle)
+        rect = rotate_object(create_rect(x0, rect_width, rect_height),angle)
 
         objects = []
         objects.append(ellipse) if circles else None
@@ -70,11 +71,11 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
         save_mesh(mesh[0],mesh[1], f"mesh{i+1}", f"meshes/{name}")
 
 #standard_cylinder_mesh_set()
-#mixed_mesh_set(True,True,False,False,False,"2cylinders")
-mixed_mesh_set(False,False,True,False,False,"cylinder_tri")
-#mixed_mesh_set(False,True,False,True,False,"cylinder_quad")
-#mixed_mesh_set(False,True,False,False,True,"cylinder_stretch")
-#mixed_mesh_set(True,True,True,True,True,"mixed_all")
+#mixed_mesh_set(True,True,False,False,False,False,"2cylinders")
+#mixed_mesh_set(False,True,True,False,False,True,"cylinder_tri")
+#mixed_mesh_set(False,True,False,True,False,True,"cylinder_quad")
+#mixed_mesh_set(False,True,False,False,True,False,"cylinder_stretch")
+#mixed_mesh_set(True,True,True,True,True,True,"mixed_all")
 
 
 
