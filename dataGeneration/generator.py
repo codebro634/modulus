@@ -169,7 +169,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     
     # Time-stepping
     t = 0
-    image_v_locs,image_p_locs = [],[]
+    image_v_locs,image_p_locs, error_raised = [],[], False
     
     for n in range(num_steps): #num_steps
     
@@ -191,7 +191,10 @@ for sim, mesh_path in enumerate(mesh_paths):
             b3 = assemble(L3)
             solve(A3, u_.vector(), b3, 'cg', 'sor')
         except RuntimeError:
+            print(f"Error raised at time step {n} for mesh {mesh_path}.")
             failed_meshes.append(mesh_path)
+            error_raised = True
+            break
     
         # Plot solution
         if args.p and n % (num_steps // num_imgs) == 0:
@@ -216,7 +219,12 @@ for sim, mesh_path in enumerate(mesh_paths):
         # Print progress
         if args.v:
             print(f"Progress {n/num_steps}")
-        
+
+    if error_raised:
+        os.remove(tut + ".h5")
+        os.remove(tpt + ".h5")
+        continue
+
     if args.v:
         print(f"Duration: {round(time.time() -  start,3)}s")
     
