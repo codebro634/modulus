@@ -14,16 +14,27 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--p", action="store_true", help="If set, save gif of the simulation.")
 parser.add_argument("--v", type=int, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt", type=float, default=0.001, help="Delta t.")
+parser.add_argument("--saveN", type=int, default=10, help="Every how many steps to save.")
 parser.add_argument("--steps", type=int, default=4010, help="Num of simulation steps.")
 parser.add_argument('--dir', default="datasets/test", help='Path to where results are stored')
 parser.add_argument('--mesh', default=None, help='Path to mesh. May also be a folder containing meshes.')
 parser.add_argument('--mesh_range', default=None, help='Range of meshes to use. If None, all meshes are used.')
+parser.add_argument("--cleanup_dir", default=None, help="Recursively searches through and reruns all erroneous simulations.")
 args = parser.parse_args()
 
 results_dir = args.dir
 os.makedirs(results_dir, exist_ok=True)
 
-if args.mesh is None:
+mesh_paths = []
+if args.cleanup_dir is not None:
+    for root, dirs, files in os.walk(args.cleanup_dir):
+        if 'failed_meshes.txt' in files:
+            with open(os.path.join(root, 'failed_meshes.txt'), 'r') as f:
+                mesh_paths += f.readlines()
+    mesh_paths = [x.strip() for x in mesh_paths]
+    if len(mesh_paths) == 0:
+        raise Exception(f"No erreoneous simulations found in {args.cleanup_dir}")
+elif args.mesh is None:
     mesh_paths = [None]
 else:
     mesh_paths = []
@@ -32,10 +43,11 @@ else:
             mesh_paths.append(root)
     if len(mesh_paths) == 0:
         raise Exception(f"No meshes found in {args.mesh}")
-    if args.mesh_range is not None:
-        start,end = args.mesh_range.split(',')
-        assert end > start
-        mesh_paths = mesh_paths[int(start):int(end)]
+
+if args.mesh_range is not None:
+    start,end = args.mesh_range.split(',')
+    assert end > start
+    mesh_paths = mesh_paths[int(start):int(end)]
 
 sims_data, failed_meshes = [], [] #One entry for each simulation
 for sim, mesh_path in enumerate(mesh_paths):
@@ -54,7 +66,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     T = 6.0            # final time
     num_steps = args.steps   # number of time steps
     dt = args.dt # time step size
-    N_save = 10 #Every N-th time step is saved
+    N_save = args.saveN #Every N-th time step is saved
     mu = 0.001         # dynamic viscosity
     rho = 1            # density
     inflow_peak = 1.25
