@@ -46,7 +46,7 @@ class MGNRollout:
             start_step=C.first_step,
             start_sim=inter_sim if inter_sim is not None else 0,
             num_samples=C.num_test_samples if inter_sim is None else None,
-            num_steps=C.num_test_time_steps if inter_sim is None else None,
+            num_steps=C.num_test_time_steps,
             verbose = False
         )
 
@@ -286,7 +286,7 @@ class MGNRollout:
 def evaluate_model(C: Constants, intermediate_eval: bool = False):
     if intermediate_eval:
         rollout = MGNRollout(C,inter_sim=0)
-        num_samples, time_steps = rollout.dataset.num_samples, rollout.dataset.num_steps
+        num_samples = rollout.dataset.num_samples
         for i in range(num_samples):
             rollout = MGNRollout(C,inter_sim=i)
             rollout.predict(inter_sim=i)

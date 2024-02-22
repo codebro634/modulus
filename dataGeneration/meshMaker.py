@@ -188,6 +188,6 @@ def print_object(obj: object):
 #tri = create_equi_tri([0.33, 0.2], 0.05)
 #tri = squish_object(tri, 1.0, 1.0)
 #rect = rotate_object(create_rect([0.33, 0.2], 0.05, 0.1),45)
-#circ = create_ellipse([0.33, 0.2], 0.05,0.05)
-#mesh, metadata = create_mesh(objects=[circ])
+circ = create_ellipse([0.33, 0.2], 0.05,0.05)
+mesh, metadata = create_mesh(objects=[circ])
 #save_mesh(mesh, metadata, 'test', 'meshes')

@@ -199,7 +199,7 @@ def train(C: Constants, dist: DistributedManager):
             file.write(log_string+ "\n")
         print(log_string, flush=True)
         if C.inter_eval:
-            evaluate_model(C=C,intermediate_eval=True)
+            evaluate_model(C=C, intermediate_eval=True)
 
         # save checkpoint
         if dist.world_size > 1:

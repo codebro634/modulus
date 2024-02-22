@@ -35,7 +35,7 @@ def average_object_stats():
     print(f"Object center y mean: {np.mean(object_centers_y)}, std: {np.std(object_centers_y)}")
     print(f"Object radius mean: {np.mean(object_radii)}, std: {np.std(object_radii)}")
 
-dataset = "raw_dataset/cylinder_flow/cylinder_flow"
+dataset = "raw_dataset/cylinder_flow/repeated73"
 graph_num = 0
 time_step = 0
 
@@ -59,7 +59,7 @@ object_x, object_y = [], []
 for k in range(n):
     x, y = simulation['mesh_pos'][time_step, k]
     ntype = simulation['node_type'][time_step, k]
-    datapoint = ((x,y),simulation['velocity'][time_step, k,0])
+    datapoint = ((x,y),simulation['velocity'][time_step, k,0], simulation['pressure'][time_step, k,0])
     if ntype == 6 and y > TOL and y < height - TOL:
         object_nodes.append(datapoint)
         object_x.append(x)
@@ -78,19 +78,19 @@ print(f"Object nodes: {len(object_nodes)}")
 print(f"Max inflow: {max_inflow}")
 print(f"Object middle ({np.mean(object_x)}, {np.mean(object_y)}), Diameter x: {np.max(object_x) - np.min(object_x)}, Diameter y: {np.max(object_y) - np.min(object_y)}")
 for node in type_4_nodes:
-    print(f"Inflow {node[0]} -> {node[1]}")
+    print(f"Inflow {node[0]} -> {node[1]} | {node[2]}")
 for node in type_5_nodes:
-    print(f"Outflow {node[0]} -> {node[1]}")
+    print(f"Outflow {node[0]} -> {node[1]} | {node[2]}")
 for node in wall_nodes:
-    print(f"Wall {node[0]} -> {node[1]}")
+    print(f"Wall {node[0]} -> {node[1]} | {node[2]}")
 for node in object_nodes:
-    print(f"Object {node[0]} -> {node[1]}")
+    print(f"Object {node[0]} -> {node[1]} | {node[2]}")
 
 
 #View of middle at the beginning
 print(f"View of middle at the beginning")
 dx = 0.025
-for i in range(10):
+for i in range(100):
     #Find node close to dx*i and height/2
     min_dist = math.inf
     min_node = None
@@ -100,6 +100,6 @@ for i in range(10):
         if dist < min_dist:
             min_dist = dist
             min_node = k
-    print(f"({simulation['mesh_pos'][time_step,min_node][0].item()},{simulation['mesh_pos'][time_step,min_node][1].item()}): {simulation['velocity'][time_step,min_node,0]}")
+    print(f"({simulation['mesh_pos'][time_step,min_node][0].item()},{simulation['mesh_pos'][time_step,min_node][1].item()}): {simulation['velocity'][time_step,min_node,0]} | {simulation['pressure'][time_step,min_node,0]}")
 
 #average_object_stats()
