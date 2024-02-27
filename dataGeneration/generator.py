@@ -12,7 +12,7 @@ import json
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--p", action="store_true", help="If set, save gif of the simulation.")
-parser.add_argument("--v", type=int, help="Verbosity level. 0 = no verbosity.")
+parser.add_argument("--v", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt", type=float, default=0.001, help="Delta t.")
 parser.add_argument("--saveN", type=int, default=10, help="Every how many steps to save.")
 parser.add_argument("--steps", type=int, default=4010, help="Num of simulation steps.")

@@ -1,1 +1,0 @@
-{"nodes": 2023, "object_boundaries": ["on_boundary && x[0]>0.3844 && x[0]< 0.59871 && x[1]>0.06434 && x[1]< 0.27864"], "height": 0.41, "width": 1.6, "inflow_peak": 2.35}
