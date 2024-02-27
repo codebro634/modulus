@@ -34,7 +34,7 @@ class Constants(BaseModel):
     num_training_samples: int = 400
     num_training_time_steps: int = 300
     lr: float = 0.0001
-    lr_decay_rate: float = 0.9999991
+    lr_decay_rate: float = 0.82540418526 #0.9999991
     hidden_dim_edge_processor: int = 128
     num_input_features: int = 6
     num_output_features: int = 3

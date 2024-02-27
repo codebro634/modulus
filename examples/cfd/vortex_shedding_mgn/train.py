@@ -198,8 +198,6 @@ def train(C: Constants, dist: DistributedManager):
         with open(os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
             file.write(log_string+ "\n")
         print(log_string, flush=True)
-        if C.inter_eval:
-            evaluate_model(C=C, intermediate_eval=True)
 
         # save checkpoint
         if dist.world_size > 1:
@@ -214,5 +212,9 @@ def train(C: Constants, dist: DistributedManager):
                 epoch=epoch,
             )
             print(f"Saved model on rank {dist.rank}", flush=True)
+
+        if C.inter_eval:
+            evaluate_model(C=C, intermediate_eval=True)
+
         start = time.time()
     print("Training finished", flush=True)
