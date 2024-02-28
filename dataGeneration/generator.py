@@ -12,7 +12,7 @@ import json
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--p", action="store_true", help="If set, save gif of the simulation.")
-parser.add_argument("--v", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
+parser.add_argument("--ver", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt", type=float, default=0.001, help="Delta t.")
 parser.add_argument("--saveN", type=int, default=10, help="Every how many steps to save.")
 parser.add_argument("--steps", type=int, default=4010, help="Num of simulation steps.")
@@ -93,7 +93,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         channel_height = 0.41
         obstacle_condition = 'on_boundary && x[0]>0.23 && x[0]<0.43 && x[1]>0.1 && x[1]<0.3'
 
-    if args.v > 0:
+    if args.ver > 0:
         print(f"{mesh.num_vertices()} vertices in mesh.",flush=True)
         print(f"Width: {channel_width}, Height: {channel_height}",flush=True)
         print(f"Obstacle condition: {obstacle_condition}",flush=True)
@@ -225,9 +225,9 @@ for sim, mesh_path in enumerate(mesh_paths):
         p_n.assign(p_)
     
         # Print progress
-        if args.v == 2:
+        if args.ver == 2:
             print(f"Progress {n/num_steps}",flush=True)
-        elif args.v == 1 and n%100 == 0:
+        elif args.ver == 1 and n%100 == 0:
             print(f"Progress {n/num_steps}",flush=True)
 
     if error_raised:
@@ -237,7 +237,7 @@ for sim, mesh_path in enumerate(mesh_paths):
             os.remove(tpt + ".h5")
         continue
 
-    if args.v > 0:
+    if args.ver > 0:
         print(f"Duration: {round(time.time() -  start,3)}s",flush=True)
     
     #Create animation
