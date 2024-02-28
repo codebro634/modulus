@@ -7,12 +7,13 @@ object_y_mid = 0.2
 object_size = 0.05
 inflow_peak, inflow_std = 1.25, 0.55
 
+num_meshes = 400 + 40 + 1 #Training +  test + intermediate evaluation
+
 def sample_gauss(mean, std, cap=2):
     return min(mean+cap*std,max(mean-cap*std,np.random.normal(mean, std)))
 
 def standard_cylinder_mesh_set():
     meshes = []
-    num_meshes = 400 + 10 + 1 #Training +  test + intermediate evaluation
 
     for i in range(num_meshes):
         print(f"Creating mesh {i+1}/{num_meshes}")
@@ -30,7 +31,6 @@ def standard_cylinder_mesh_set():
 
 def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False, stretching = False, rotate = False, name: str = "mixed"):
     meshes = []
-    num_meshes = 400 + 10 + 1 #Training +  test + intermediate evaluation
 
     def make_object(x0):
         ellipse_width = sample_gauss(object_size, 0.02)
@@ -73,10 +73,10 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
     for i, mesh in enumerate(meshes):
         save_mesh(mesh[0],mesh[1], f"mesh{i+1}", f"meshes/{name}")
 
-#standard_cylinder_mesh_set()
-#mixed_mesh_set(True,True,False,False,False,False,"2cylinders")
-#mixed_mesh_set(False,True,True,True,False,True,"cylinder_tri_quad")
-#mixed_mesh_set(False,True,False,False,True,False,"cylinder_stretch")
-#mixed_mesh_set(True,True,True,True,True,True,"mixed_all")
+# standard_cylinder_mesh_set()
+# mixed_mesh_set(True,True,False,False,False,False,"2cylinders")
+# mixed_mesh_set(False,True,True,True,False,True,"cylinder_tri_quad")
+# mixed_mesh_set(False,True,False,False,True,False,"cylinder_stretch")
+mixed_mesh_set(True,True,True,True,True,True,"mixed_all")
 
 
