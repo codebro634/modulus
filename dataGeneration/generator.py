@@ -15,7 +15,7 @@ parser.add_argument("--p", action="store_true", help="If set, save gif of the si
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt", type=float, default=0.001, help="Delta t.")
 parser.add_argument("--saveN", type=int, default=10, help="Every how many steps to save.")
-parser.add_argument("--steps", type=int, default=4010, help="Num of simulation steps.")
+parser.add_argument("--steps", type=int, default=3010, help="Num of simulation steps.")
 parser.add_argument('--dir', default="datasets/test", help='Path to where results are stored')
 parser.add_argument('--mesh', default=None, help='Path to mesh. May also be a folder containing meshes.')
 parser.add_argument('--mesh_range', default=None, help='Range of meshes to use. If None, all meshes are used.')
