@@ -46,7 +46,7 @@ else:
 
 if args.mesh_range is not None:
     start,end = args.mesh_range.split(',')
-    assert end > start
+    assert int(end) > int(start)
     mesh_paths = mesh_paths[int(start):int(end)]
 
 sims_data, failed_meshes = [], [] #One entry for each simulation
