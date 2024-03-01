@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     # parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/test", help='Path to the dataset.')
+    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/cylinder_flow", help='Path to the dataset.')
     parser.add_argument('--exp_name', default="model", help='Name of the experiment.')
     parser.add_argument('--exp_group', default="multihop", help='Group of the experiment.')
     parser.add_argument('--inter_eval', action='store_true', help='Does tiny intermediate evaluations after each epoch.')
