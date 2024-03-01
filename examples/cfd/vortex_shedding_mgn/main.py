@@ -4,6 +4,7 @@ from constants import Constants
 from examples.cfd.vortex_shedding_mgn.inference import evaluate_model
 from modulus.distributed.manager import DistributedManager
 from examples.cfd.vortex_shedding_mgn.train import train
+import torch
 
 #By ChatGPT
 def set_cwd(start_path='.'):
@@ -23,6 +24,10 @@ def set_cwd(start_path='.'):
 
 
 if __name__ == "__main__":
+
+    if torch.cuda.is_available():
+        tmp = torch.tensor([1,2,3], device='cuda:0') #Weird workaround to avoid 0 reserved memory bug for CUDA
+
     #Change cwd
     set_cwd()
 

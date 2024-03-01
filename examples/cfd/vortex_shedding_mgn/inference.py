@@ -26,7 +26,7 @@ from modulus.models.meshgraphnet import MeshGraphNet
 from modulus.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
 from modulus.launch.utils import load_checkpoint
 from constants import Constants
-
+from time import time
 import wandb as wb
 
 
@@ -92,6 +92,7 @@ class MGNRollout:
         mse = torch.nn.MSELoss()
         mse_1_step, mse_50_step, mse_all_step = np.zeros(2), np.zeros(2), np.zeros(2)
         num_steps, num_50_steps = 0, 0
+        t1step, t50step, tallstep = 0, 0, 0
 
         for i, (graph, cells, mask) in enumerate(self.dataloader):
             graph = graph.to(self.device)
@@ -125,8 +126,12 @@ class MGNRollout:
                 one_step_invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
             )
 
+            start = time()
             pred_i = self.model(invar, graph.edata["x"], graph).detach()  # predict
+            dt_allstep = time() - start
+            start = time()
             pred_i_one_step = self.model(one_step_invar, graph.edata["x"], graph).detach()
+            dt_1step = time() - start
 
             # denormalize prediction
             pred_i[:, 0:2] = self.dataset.denormalize(
@@ -184,15 +189,18 @@ class MGNRollout:
 
             #Loss calculation
             mse_all_step[0] += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item() #Velocity prediction
-            mse_all_step[1] += mse(self.pred[-1], self.exact[-1]).item() #Pressure + velocity prediction
+            mse_all_step[1] += mse(self.pred[-1][:, 2], self.exact[-1][:, 2]).item() #Pressure
+            tallstep += dt_allstep
 
             if i % self.C.num_test_time_steps < 50:
                 mse_50_step[0] += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
-                mse_50_step[1] += mse(self.pred[-1], self.exact[-1]).item()
+                mse_50_step[1] += mse(self.pred[-1][:, 2], self.exact[-1][:, 2]).item()
                 num_50_steps += 1
+                t50step += dt_allstep
 
             mse_1_step[0] += mse(self.pred_one_step[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
-            mse_1_step[1] += mse(self.pred_one_step[-1], self.exact[-1]).item()
+            mse_1_step[1] += mse(self.pred_one_step[-1][:, 2], self.exact[-1][:, 2]).item()
+            t1step += dt_1step
 
             num_steps += 1
 
@@ -203,14 +211,20 @@ class MGNRollout:
         rmse_1_step = np.sqrt(mse_1_step / num_steps)
         rmse_50_step = np.sqrt(mse_50_step / num_50_steps)
         rmse_all_step = np.sqrt(mse_all_step / num_steps)
+        t1step /= num_steps
+        t50step /= num_50_steps
+        tallstep /= num_steps
 
         result_dict = {
                     "RMSE (velo) 1 step": rmse_1_step[0],
                     "RMSE (velo) 50 step": rmse_50_step[0],
                     "RMSE (velo) all step": rmse_all_step[0],
-                    "RMSE (velo+pressure) 1 step": rmse_1_step[1],
-                    "RMSE (velo+pressure) 50 step": rmse_50_step[1],
-                    "RMSE (velo+pressure) all step": rmse_all_step[1],
+                    "RMSE (pressure) 1 step": rmse_1_step[1],
+                    "RMSE (pressure) 50 step": rmse_50_step[1],
+                    "RMSE (pressure) all step": rmse_all_step[1],
+                    "Avg time 1 step:": t1step,
+                    "Avg time 50 step": t50step,
+                    "Avg time all steps": tallstep
         }
 
         if inter_sim is None:

@@ -70,7 +70,7 @@ class MGNTrainer:
 
         # instantiate the model
         print("Instantiating model...", flush=True)
-        self.model = MeshGraphNet(
+        model = MeshGraphNet(
             C.num_input_features, C.num_edge_features, C.num_output_features, hidden_dim_edge_processor=C.hidden_dim_edge_processor,
             hidden_dim_processor=C.hidden_dim_edge_processor,
             hidden_dim_node_encoder=C.hidden_dim_edge_processor,
@@ -79,9 +79,10 @@ class MGNTrainer:
             multi_hop_edges=C.multi_hop_edges
         )
         if C.jit:
-            self.model = torch.jit.script(self.model).to(dist.device)
+            self.model = torch.jit.script(model).to(dist.device)
         else:
-            self.model = self.model.to(dist.device)
+            tmp = model.to(dist.device)
+            self.model = tmp #Workaround so CUDA doesnt throw any errors
         if C.watch_model and not C.jit and dist.rank == 0:
             wb.watch(self.model)
 
