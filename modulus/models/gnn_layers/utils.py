@@ -161,6 +161,7 @@ def concat_efeat_dgl(
                     cat_feat = torch.cat((edges.data["x"], edges.src["x"], edges.dst["x"], mh_feat_edges, mh_feat_vertices), dim=1)
                 elif multi_hop["agg"] == "sum":
                     mh_feat_edges = edges.src["et"] + edges.dst["et"] - 2 * edges.data["x"]
+                    print(mh_feat_edges.device)
                     cat_feat = torch.cat((edges.data["x"] + multi_hop["weight"] * mh_feat_edges,
                                           edges.src["x"] + multi_hop["weight"] * (edges.src["vt"] - edges.dst["x"]),
                                           edges.dst["x"] + multi_hop["weight"] * (edges.dst["vt"] - edges.src["x"])), dim=1)
@@ -369,6 +370,7 @@ def multi_hop_agg(
     with graph.local_scope():
         graph.edata["x"] = efeat
         graph.ndata["x"] = dst_nfeat
+        print(graph.edata["x"].device)
 
         if aggregation == "sum":
             graph.update_all(fn.copy_e("x", "me"), fn.sum("me", "e_dest"))
