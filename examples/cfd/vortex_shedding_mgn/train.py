@@ -40,6 +40,7 @@ from modulus.launch.logging import (
 from modulus.launch.utils import load_checkpoint, save_checkpoint
 from constants import Constants
 
+
 class MGNTrainer:
 
     def __init__(self, wb, dist, C: Constants):
@@ -70,7 +71,12 @@ class MGNTrainer:
         # instantiate the model
         print("Instantiating model...", flush=True)
         self.model = MeshGraphNet(
-            C.num_input_features, C.num_edge_features, C.num_output_features, hidden_dim_edge_processor=C.hidden_dim_edge_processor, multi_hop_edges=C.multi_hop_edges
+            C.num_input_features, C.num_edge_features, C.num_output_features, hidden_dim_edge_processor=C.hidden_dim_edge_processor,
+            hidden_dim_processor=C.hidden_dim_edge_processor,
+            hidden_dim_node_encoder=C.hidden_dim_edge_processor,
+            hidden_dim_node_decoder=C.hidden_dim_edge_processor,
+            hidden_dim_edge_encoder=C.hidden_dim_edge_processor,
+            multi_hop_edges=C.multi_hop_edges
         )
         if C.jit:
             self.model = torch.jit.script(self.model).to(dist.device)
