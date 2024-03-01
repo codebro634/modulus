@@ -57,7 +57,7 @@ class PythonLogger:
 
     def info(self, message: str):
         """Log info"""
-        self.logger.info(colored(message, "light_blue"))
+        #self.logger.info(colored(message, "light_blue"))
 
     def success(self, message: str):
         """Log success"""
@@ -65,11 +65,11 @@ class PythonLogger:
 
     def warning(self, message: str):
         """Log warning"""
-        self.logger.warning(colored(message, "light_yellow"))
+        #self.logger.warning(colored(message, "light_yellow"))
 
     def error(self, message: str):
         """Log error"""
-        self.logger.error(colored(message, "light_red"))
+        #self.logger.error(colored(message, "light_red"))
 
 
 class RankZeroLoggingWrapper:
