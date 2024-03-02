@@ -22,6 +22,8 @@ import json
 import argparse
 from inference import evaluate_model
 import psutil
+import numpy as np
+import pickle
 
 try:
     import apex
@@ -193,10 +195,39 @@ def train(C: Constants, dist: DistributedManager):
     start = time.time()
     print("Start training", flush=True)
     for epoch in range(trainer.epoch_init, C.epochs):
-        for i, graph in enumerate(trainer.dataloader):
+
+        #Memory hack to make this work on CUDA
+        graphs = [g for i, g in enumerate(trainer.dataloader)]
+        divisions = 10
+        for i in range(0, len(graphs), len(graphs)//divisions):
+            #Save range of graphs with numpy
+            os.makedirs(f"{C.data_dir}/train_divs", exist_ok=True)
+            np.save(f'{C.data_dir}/train_divs/{i}.npy', graphs[i:i+len(graphs)//divisions])
+        num_graphs = len(graphs)
+        with open(f'{C.data_dir}/train_divs/dl.pickle', 'wb') as f:
+            pickle.dump(trainer.dataloader, f)
+        graphs = None
+
+        current_graph_division = None
+        for i in range(num_graphs):
+            division = i//(num_graphs//divisions)
+            inter_division = i % (num_graphs//divisions)
+            if inter_division == 0:
+                current_graph_division = np.load(f"{C.data_dir}/train_divs/{division}.npy", allow_pickle=True)
+            graph = current_graph_division[inter_division]
             loss = trainer.train(graph)
-            if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or (i % 1000 == 0 and i < 10000) or i % 10000 == 0:
+            if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or (
+                    i % 1000 == 0 and i < 10000) or i % 10000 == 0:
                 print(f"Epoch {epoch} | Graphs processed:{i}", flush=True)
+
+        with open(f'{C.data_dir}/train_divs/dl.pickle', 'rb') as f:
+            trainer.dataloader = pickle.load(f)
+
+
+        # for i, graph in enumerate(trainer.dataloader):
+        #     loss = trainer.train(graph)
+        #     if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or (i % 1000 == 0 and i < 10000) or i % 10000 == 0:
+        #         print(f"Epoch {epoch} | Graphs processed:{i}", flush=True)
 
 
         log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
