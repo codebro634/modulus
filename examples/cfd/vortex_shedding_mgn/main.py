@@ -25,9 +25,6 @@ def set_cwd(start_path='.'):
 
 if __name__ == "__main__":
 
-    if torch.cuda.is_available():
-        tmp = torch.tensor([1,2,3], device='cuda:0') #Weird workaround to avoid 0 reserved memory bug for CUDA
-
     #Change cwd
     set_cwd()
 

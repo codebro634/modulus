@@ -217,6 +217,60 @@ class VortexSheddingDataset(DGLDataset):
                 self.node_stats["pressure_std"],
             )
 
+        # self.divisions = divisions
+        # self.current_division = 0
+        #
+        # os.makedirs(self.data_dir + "/train_divs", exist_ok=True)
+        # for div in range(divisions):
+        #     current_division = {"graphs": [], "node_features": [], "node_targets_vel": [], "node_targets_pr": [], "node_type": [], "mesh_pos": [],"cells": [], "rollout_mask": []}
+        #     l, u = self.get_ith_division_range(div)
+        #     for idx in range(l,u):
+        #         print(idx)
+        #         gidx = idx // (self.num_steps - 1)  # graph index
+        #         tidx = idx % (self.num_steps - 1)  # time step index
+        #         #current_division["graphs"].append(self.graphs[gidx])
+        #         #current_division["node_features"].append(self.node_features[0]["velocity"][0])
+        #         #current_division["node_targets_vel"].append(self.node_targets[gidx]["velocity"][tidx])
+        #         #current_division["node_targets_pr"].append(self.node_targets[gidx]["pressure"][tidx])
+        #         #current_division["node_type"].append(self.node_type[gidx])
+        #         #current_division["mesh_pos"].append(self.mesh_pos[gidx]) if self.split != "train" else None
+        #         #current_division["cells"].append(self.cells[gidx]) if self.split != "train" else None
+        #         #current_division["rollout_mask"].append(self.rollout_mask[gidx]) if self.split != "train" else None
+        #
+        #     #Save division
+        #     #current_division["node_features"] = np.array(current_division["node_features"])
+        #     current_division["node_features"] = np.repeat(self.node_features[0]["velocity"][0][:,np.newaxis],u-l, axis=1)
+        #     np.save(self.data_dir + "/train_divs/" + f"division_{div}.npy", current_division)
+        #
+        #
+        # self.node_features = None
+        # self.node_targets = None
+        # self.node_type = None
+        # self.mesh_pos = None
+        # self.cells = None
+        # self.rollout_mask = None
+        # self.graphs = None
+
+
+
+
+    # def get_ith_division_range(self, i):
+    #     return (i * self.length // self.divisions, (i + 1) * self.length // self.divisions)
+    #
+    # def save_as_divisions(self, divisions):
+    #     pass
+    #
+    # def load_division(self, division):
+    #     pass
+    #
+    # def load_full(self):
+    #     pass
+    #
+    # def shuffle(self):
+    #     #Shuffle all arrays with the same permutation with np function
+    #     pass
+
+
     def __getitem__(self, idx):
         gidx = idx // (self.num_steps - 1)  # graph index
         tidx = idx % (self.num_steps - 1)  # time step index

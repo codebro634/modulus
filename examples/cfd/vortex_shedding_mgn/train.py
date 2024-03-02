@@ -24,6 +24,8 @@ from inference import evaluate_model
 import psutil
 import numpy as np
 import pickle
+import sys
+import GPUtil
 
 try:
     import apex
@@ -72,7 +74,7 @@ class MGNTrainer:
 
         # instantiate the model
         print("Instantiating model...", flush=True)
-        model = MeshGraphNet(
+        self.model = MeshGraphNet(
             C.num_input_features, C.num_edge_features, C.num_output_features, hidden_dim_edge_processor=C.hidden_dim_edge_processor,
             hidden_dim_processor=C.hidden_dim_edge_processor,
             hidden_dim_node_encoder=C.hidden_dim_edge_processor,
@@ -83,8 +85,7 @@ class MGNTrainer:
         if C.jit:
             self.model = torch.jit.script(model).to(dist.device)
         else:
-            tmp = model.to(dist.device)
-            self.model = tmp #Workaround so CUDA doesnt throw any errors
+            self.model = self.model.to(dist.device)
         if C.watch_model and not C.jit and dist.rank == 0:
             wb.watch(self.model)
 
@@ -169,6 +170,7 @@ def print_memory_info():
     # Print used and available memory
     print(f"Used Memory: {convert_bytes(memory_info.used)}")
     print(f"Available Memory: {convert_bytes(memory_info.available)}")
+    GPUtil.showUtilization()
 
 def train(C: Constants, dist: DistributedManager):
 
@@ -192,45 +194,15 @@ def train(C: Constants, dist: DistributedManager):
         )  # Wandb logger
 
     trainer = MGNTrainer(wb, dist, C)
+
     start = time.time()
     print("Start training", flush=True)
     for epoch in range(trainer.epoch_init, C.epochs):
 
-        #Memory hack to make this work on CUDA
-        graphs = [g for i, g in enumerate(trainer.dataloader)]
-        divisions = 10
-        for i in range(0, len(graphs), len(graphs)//divisions):
-            #Save range of graphs with numpy
-            os.makedirs(f"{C.data_dir}/train_divs", exist_ok=True)
-            np.save(f'{C.data_dir}/train_divs/{i // (len(graphs)//divisions)}.npy', graphs[i:i+len(graphs)//divisions])
-            print(i,i // (len(graphs)//divisions))
-        num_graphs = len(graphs)
-        with open(f'{C.data_dir}/train_divs/dl.pickle', 'wb') as f:
-            pickle.dump(trainer.dataloader, f)
-        trainer.dataloader = None
-        graphs = None
-
-        current_graph_division = None
-        for i in range(num_graphs):
-            division = i//(num_graphs//divisions)
-            inter_division = i % (num_graphs//divisions)
-            if inter_division == 0:
-                current_graph_division = np.load(f"{C.data_dir}/train_divs/{division}.npy", allow_pickle=True)
-            graph = current_graph_division[inter_division]
+        for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
-            if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or (
-                    i % 1000 == 0 and i < 10000) or i % 10000 == 0:
+            if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or (i % 1000 == 0 and i < 10000) or i % 10000 == 0:
                 print(f"Epoch {epoch} | Graphs processed:{i}", flush=True)
-
-        with open(f'{C.data_dir}/train_divs/dl.pickle', 'rb') as f:
-            trainer.dataloader = pickle.load(f)
-
-
-        # for i, graph in enumerate(trainer.dataloader):
-        #     loss = trainer.train(graph)
-        #     if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or (i % 1000 == 0 and i < 10000) or i % 10000 == 0:
-        #         print(f"Epoch {epoch} | Graphs processed:{i}", flush=True)
-
 
         log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
         if C.wandb_tracking:
