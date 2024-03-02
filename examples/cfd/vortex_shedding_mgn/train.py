@@ -202,10 +202,12 @@ def train(C: Constants, dist: DistributedManager):
         for i in range(0, len(graphs), len(graphs)//divisions):
             #Save range of graphs with numpy
             os.makedirs(f"{C.data_dir}/train_divs", exist_ok=True)
-            np.save(f'{C.data_dir}/train_divs/{i}.npy', graphs[i:i+len(graphs)//divisions])
+            np.save(f'{C.data_dir}/train_divs/{i // (len(graphs)//divisions)}.npy', graphs[i:i+len(graphs)//divisions])
+            print(i,i // (len(graphs)//divisions))
         num_graphs = len(graphs)
         with open(f'{C.data_dir}/train_divs/dl.pickle', 'wb') as f:
             pickle.dump(trainer.dataloader, f)
+        trainer.dataloader = None
         graphs = None
 
         current_graph_division = None
