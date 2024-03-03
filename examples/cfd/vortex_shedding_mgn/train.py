@@ -15,16 +15,11 @@
 import torch
 from dgl.dataloading import GraphDataLoader
 from torch.cuda.amp import autocast, GradScaler
-from torch.nn.parallel import DistributedDataParallel
 import time, os
-import wandb as wb
 import json
-import argparse
 from inference import evaluate_model
 import psutil
-import numpy as np
-import pickle
-import sys
+
 import GPUtil
 
 try:
@@ -34,21 +29,14 @@ except:
 
 from modulus.models.meshgraphnet import MeshGraphNet
 from modulus.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
-from modulus.distributed.manager import DistributedManager
 
-from modulus.launch.logging import (
-    PythonLogger,
-    initialize_wandb,
-    RankZeroLoggingWrapper,
-)
 from modulus.launch.utils import load_checkpoint, save_checkpoint
 from constants import Constants
 
 
 class MGNTrainer:
 
-    def __init__(self, wb, dist, C: Constants):
-        self.dist = dist
+    def __init__(self, C: Constants):
         self.C = C
 
         # instantiate dataset
@@ -69,7 +57,7 @@ class MGNTrainer:
             shuffle=True,
             drop_last=True,
             pin_memory=True,
-            use_ddp=dist.world_size > 1,
+            use_ddp=False,
         )
 
         # instantiate the model
@@ -83,21 +71,9 @@ class MGNTrainer:
             multi_hop_edges=C.multi_hop_edges
         )
         if C.jit:
-            self.model = torch.jit.script(model).to(dist.device)
+            self.model = torch.jit.script(self.model).to(C.device)
         else:
-            self.model = self.model.to(dist.device)
-        if C.watch_model and not C.jit and dist.rank == 0:
-            wb.watch(self.model)
-
-        # distributed data parallel for multi-node training
-        if dist.world_size > 1:
-            self.model = DistributedDataParallel(
-                self.model,
-                device_ids=[dist.local_rank],
-                output_device=dist.device,
-                broadcast_buffers=dist.broadcast_buffers,
-                find_unused_parameters=dist.find_unused_parameters,
-            )
+            self.model = self.model.to(C.device)
 
         # enable train mode
         self.model.train()
@@ -114,22 +90,20 @@ class MGNTrainer:
         self.scaler = GradScaler()
 
         # load checkpoint
-        if dist.world_size > 1:
-            torch.distributed.barrier()
         self.epoch_init = load_checkpoint(
             os.path.join(C.ckpt_path, C.ckpt_name),
             models=self.model,
             optimizer=self.optimizer,
             scheduler=self.scheduler,
             scaler=self.scaler,
-            device=dist.device,
+            device=C.device,
             epoch=C.ckp,
         )
 
         print("Finished MGN Trainer init", flush=True)
 
     def train(self, graph):
-        graph = graph.to(self.dist.device)
+        graph = graph.to(self.C.device)
         self.optimizer.zero_grad()
         loss = self.forward(graph)
         self.backward(loss)
@@ -172,28 +146,16 @@ def print_memory_info():
     print(f"Available Memory: {convert_bytes(memory_info.available)}")
     GPUtil.showUtilization()
 
-def train(C: Constants, dist: DistributedManager):
+def train(C: Constants):
 
     # save constants to JSON file
-    if dist.rank == 0:
-        os.makedirs(C.ckpt_path, exist_ok=True)
-        with open(
-            os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".json")), "w"
-        ) as json_file:
-            json.dump({**C.__dict__,**{"worlds": dist.world_size}}, json_file, indent=4)
+    os.makedirs(C.ckpt_path, exist_ok=True)
+    with open(
+        os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".json")), "w"
+    ) as json_file:
+        json.dump(C.__dict__, json_file, indent=4)
 
-    # initialize loggers
-    if C.wandb_tracking:
-        initialize_wandb(
-            project="MGNs",
-            entity="besteteam",
-            name=C.exp_name,
-            group=C.exp_group,
-            mode=C.wandb_mode,
-            config={**C.__dict__,**{"worlds": dist.world_size}},
-        )  # Wandb logger
-
-    trainer = MGNTrainer(wb, dist, C)
+    trainer = MGNTrainer(C)
 
     start = time.time()
     print("Start training", flush=True)
@@ -205,25 +167,20 @@ def train(C: Constants, dist: DistributedManager):
                 print(f"Epoch {epoch} | Graphs processed:{i}", flush=True)
 
         log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
-        if C.wandb_tracking:
-            wb.log({"loss": loss.detach().cpu()})
+
         with open(os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
             file.write(log_string+ "\n")
         print(log_string, flush=True)
 
-        # save checkpoint
-        if dist.world_size > 1:
-            torch.distributed.barrier()
-        if dist.rank == 0:
-            save_checkpoint(
-                os.path.join(C.ckpt_path, C.ckpt_name),
-                models=trainer.model,
-                optimizer=trainer.optimizer,
-                scheduler=trainer.scheduler,
-                scaler=trainer.scaler,
-                epoch=epoch,
-            )
-            print(f"Saved model on rank {dist.rank}", flush=True)
+        save_checkpoint(
+            os.path.join(C.ckpt_path, C.ckpt_name),
+            models=trainer.model,
+            optimizer=trainer.optimizer,
+            scheduler=trainer.scheduler,
+            scaler=trainer.scaler,
+            epoch=epoch,
+        )
+        print(f"Saved model", flush=True)
 
         if C.inter_eval:
             evaluate_model(C=C, intermediate_eval=True)

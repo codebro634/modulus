@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from pathlib import Path
 from pydantic import BaseModel
-from typing import Tuple, Optional
+from typing import Tuple
+import torch
 
 
 class Constants(BaseModel):
@@ -34,7 +33,7 @@ class Constants(BaseModel):
     num_training_samples: int = 400
     num_training_time_steps: int = 300
     lr: float = 0.0001
-    lr_decay_rate: float = 0.82540418526 #0.9999991
+    lr_decay_rate: float = 0.82540418526
     hidden_dim_edge_processor: int = 128
     num_input_features: int = 6
     num_output_features: int = 3
@@ -44,6 +43,7 @@ class Constants(BaseModel):
     multi_hop_edges: dict = None # Possible keys: agg in {sum, concat, concat_sum} and weight of agg=sum
 
     # performance configs
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
     amp: bool = False
     jit: bool = False
 
@@ -55,7 +55,3 @@ class Constants(BaseModel):
     frame_skip: int = 10
     frame_interval: int = 1
 
-    # wb configs
-    wandb_tracking: bool = False
-    wandb_mode: str = "disabled"
-    watch_model: bool = False

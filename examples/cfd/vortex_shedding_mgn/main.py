@@ -2,9 +2,7 @@ import os
 import argparse
 from constants import Constants
 from examples.cfd.vortex_shedding_mgn.inference import evaluate_model
-from modulus.distributed.manager import DistributedManager
 from examples.cfd.vortex_shedding_mgn.train import train
-import torch
 
 #By ChatGPT
 def set_cwd(start_path='.'):
@@ -46,9 +44,8 @@ if __name__ == "__main__":
     parser.add_argument('--num_inf_time_steps', type=int, default=C.num_test_time_steps, help='Number of time steps per simulation used for inference.')
     parser.add_argument('--multihop', default="none", help='Which multihop to use. Choose from {none,sum,concat_sum,concat}.')
     parser.add_argument('--weight', type=float, default=0.5, help='The weight to be used for multihop if mode=sum is chosen.')
-    parser.add_argument('--wandb', action='store_true', help='Tracks experiment with wandb.')
-    parser.add_argument('--train', action='store_true', help='Tracks experiment with wandb.')
-    parser.add_argument('--eval', action='store_true', help='Tracks experiment with wandb.')
+    parser.add_argument('--train', action='store_true', help='')
+    parser.add_argument('--eval', action='store_true', help='')
     args = parser.parse_args()
     # Instantiate constants
 
@@ -72,14 +69,10 @@ if __name__ == "__main__":
     else:
         C.multi_hop_edges = None
 
-    # initialize distributed manager
-    DistributedManager.initialize()
-    dist = DistributedManager()
-
     # run training
     if args.train:
-        train(C, dist)
+        train(C)
 
     # run evaluation
-    if dist.rank == 0 and args.eval:
+    if args.eval:
         evaluate_model(C)
