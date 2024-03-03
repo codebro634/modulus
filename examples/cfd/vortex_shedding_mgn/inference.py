@@ -27,7 +27,6 @@ from modulus.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
 from modulus.launch.utils import load_checkpoint
 from constants import Constants
 from time import time
-import wandb as wb
 
 
 class MGNRollout:
@@ -234,8 +233,6 @@ class MGNRollout:
                     file.write(out_str+"\n")
                     print(out_str, flush=True)
 
-            if self.C.wandb_tracking:
-                wb.log(result_dict)
         else:
             print(f"Inter eval sim {inter_sim}: 1step {rmse_1_step[0]}, 50step {rmse_50_step[0]}, allstep {rmse_all_step[0]}")
 

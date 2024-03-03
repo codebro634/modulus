@@ -49,7 +49,7 @@ class Constants(BaseModel):
 
     # test & visualization configs
     inter_eval: bool = False
-    num_test_samples: int = 10
+    num_test_samples: int = 40
     num_test_time_steps: int = 300
     viz_vars: Tuple[str, ...] = ("u", "v", "p")
     frame_skip: int = 10
