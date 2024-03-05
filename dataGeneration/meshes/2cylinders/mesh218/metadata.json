@@ -1,0 +1,1 @@
+{"nodes": 1920, "object_boundaries": ["on_boundary && x[0]>0.31212 && x[0]< 0.54938 && x[1]>0.12997 && x[1]< 0.36724"], "height": 0.41, "width": 1.6, "inflow_peak": 0.33}
