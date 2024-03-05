@@ -72,7 +72,7 @@ python dataGeneration/generator.py --dir <str> --mesh <str> [--steps <int> --dt 
 - `p`: If set, the simulation of the first mesh is animated and saved as a gif
 
   
-# Analyze dataset (Used for reverse engineering parameters)
+# Analyze dataset (Used for reverse-engineering parameters)
 
 ```
 python examples/cfd/vortex_shedding_mgn/datasetAnalysis.py --dataset <str> --split <str> [--graph_num <int> --time_step <int>]
