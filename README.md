@@ -70,3 +70,17 @@ python dataGeneration/generator.py --dir <str> --mesh <str> [--steps <int> --dt 
 - `vlevel`: Verbosity level. Min:0, Max:2. Default:1
 - `cleanup_dir`: If not None, then instead of using `mesh`, the directory  `cleanup_dir` and its subdirectories are searched for files named 'failed_meshes.txt'. These files are assumed to contain paths to meshes. All meshes found this way are used for simulation. Default: None
 - `p`: If set, the simulation of the first mesh is animated and saved as a gif
+
+  
+# Analyze dataset (Used for reverse engineering parameters)
+
+```
+python examples/cfd/vortex_shedding_mgn/datasetAnalysis.py --dataset <str> --split <str> [--graph_num <int> --time_step <int>]
+```
+- `dataset`: Path to the dataset to be analyzed
+- `split`: Which split inside the dataset is to be analyzed
+
+### Optional parameters
+- `graph_num`: Number of the simulation inside the dataset to analyze. Default: None
+- `time_step`: Number of the time step within the `graph_num` to analyze. Default: None
+
