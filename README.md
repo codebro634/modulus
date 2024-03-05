@@ -1,86 +1,155 @@
+# Modulus (Beta)
 
-# Purpose
-Code for the Master's thesis: Evaluation and improvements to mesh graph nets
-for computational fluid dynamics simulations
+<!-- markdownlint-disable -->
+[![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+[![GitHub](https://img.shields.io/github/license/NVIDIA/modulus)](https://github.com/NVIDIA/modulus/blob/master/LICENSE.txt)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+<!-- markdownlint-enable -->
 
-# Acknowledgements
-MODULUS NVIDIA
+Modulus is an open source deep-learning framework for building, training, and fine-tuning
+deep learning models using state-of-the-art Physics-ML methods.
 
-# Run Spillover
+Whether you are exploring the use of Neural operators like Fourier Neural Operators or
+interested in Physics informed Neural Networks or a hybrid approach in between, Modulus
+provides you with the optimized stack that will enable you to train your models at real
+world scale.
 
-```
-python examples/cfd/vortex_sheddin_mgn/main.py --exp_name <str> --data_dir <str> [--ckp <ckp> --epochs <int> --hidden <int> --num_samples <int> --num_time_steps <int> --first_step <int> --num_inf_samples <int> --num_inf_time_steps <int> --multihop <str> --weight <float> --train --eval --verbose --inter_eval]
-```
+This package is the core module that provides the core algorithms, network architectures
+and utilities that cover a broad spectrum of physics-constrained and data-driven
+workflows to suit the diversity of use cases in the science and engineering disciplines.
 
-- `exp_name`: Name the experiment to be run. The results will be saved under checkpoints/`exp_name`
-- `data_dir`: Path (relative to examples/cfd/vortex_shedding_mgn) to directory containing the dataset
-- `num_inf_samples`: Number of different simulations used for inference.
-- `num_inf_time_steps`: Number of time steps per simulation used for inference
-- `num_samples`: Number of different simulations used in training
-- `num_time_steps`: Number of time steps per simulation in training
+Detailed information on features and capabilities can be found in the [Modulus documentation](https://docs.nvidia.com/modulus/index.html#core).
 
-### Optional parameters
-- `ckp`: Number of checkpoint to load. If None is set, the latest is taken. If -1 or there are no saved checkpoints, a model will be newly initialized. Default: None
-- `epochs`: Number of training epochs. Default: 25
-- `hidden`: Hidden dim size for edge/node processor/encoder/decoder. Default: 128
-- `first_step`: Simulation time step to start from. Default: 0
-- `multihop`: Which Spillover method to use. Choose from {none, sum,concat_sum,concat}. Default: none
-- `weight`: The weight to be used for Spillover if mode=sum is chosen. Default: 0.5
-- `train`: If set, the MGN is trained
-- `eval`: If set, the MGN is trained. If neither train nor eval is set, nothing happens
-- `verbose`: If set, verbosity is activated
-- `inter_eval`: If set, a very small-scale evaluation is performed after every epoch on the test_tiny split
+<!-- markdownlint-disable -->
+<p align="center">
+  <img src=https://raw.githubusercontent.com/NVIDIA/modulus/main/docs/img/Modulus-850x720.svg alt="Modulus"/>
+</p>
+<!-- markdownlint-enable -->
 
-# Generate meshes
+## Modulus Packages
 
-```
-python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--width <float> --height <float> --ox <float> --oy <float> --osize <float> --inflow_peak_mean <float> --inflow_peak_max_deviation <float> --two_obj --rotate --stretch --circs --tris --quads]
-```
-- `name`: Name of the mesh dataset. The generated meshes are saved into meshes/`name`
-- `num_meshes`: Number of meshes to generate
+- [Modulus (Beta)](https://github.com/NVIDIA/modulus): Open-source deep-learning
+  framework for building, training, and fine-tuning deep learning models using
+  state-of-the-art Physics-ML methods.
+- [Modulus Symbolic (Beta)](https://github.com/NVIDIA/modulus-sym): Framework
+  providing pythonic APIs, algorithms and utilities to be used with Modulus
+  core to physics inform model training as well as higher level abstraction
+  for domain experts.
 
-### Optional parameters
-- `width`: Width of the channel. Default: 1.6
-- `height`: Height of the channel. Default: 0.41
-- `ox`: Mean of object's mid point's x-coordinate. Default: 0.325
-- `oy`: Mean of object's mid point's y-coordinate. Default: 0.2
-- `osize`: Mean object size (e.g. radius for circles). Default: 0.05
-- `inflow_peak_mean`:  Mean of the inflow peak. Default: 1.25
-- `inflow_peak_max_derivation`: Inflow peak is sampled from uniform[inflow_peak_mean-inflow_peak_max_derivation,inflow_peak_mean+inflow_peak_max_derivation]. Default: 1.0
-- `two_obj`: If set, a second object is randomly added
-- `rotate`: If set, the object(s) get randomly rotated
-- `stretch`: If set, the object(s) get randomly stretched/squeezed in the x/y-direction
-- `circs`: If set, circles are part of the possible objects that can be generated
-- `tris`: If set, triangles are part of the possible objects that can be generated
-- `quads`: If set, squares are part of the possible objects that can be generated
+### Domain Specific Packages
 
-# Simulate flow on a mesh
-
-```
-python dataGeneration/generator.py --dir <str> --mesh <str> [--steps <int> --dt <float> --saveN <int> --mesh_range <tuple(int,int)> --vlevel <int> --cleanup_dir <str> --p]
-```
-- `dir`: Name of the dir to save the simulation results into.
-- `mesh`: Path to the mesh, the simulation is supposed to be run on. Can also be a directory. In that case, all meshes within all subfolders of that directory are simulated
-
-### Optional parameters
-- `steps`: Number of simulation steps. Default: 6020
-- `dt`: Each step progresses `dt` in time. Default: 0.0005
-- `saveN`: Every `saveN`-th step is saved into the final simulation data. The rest is discarded. Default: 20
-- `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (order determined by python's os.walk). None, means all meshes are used. Default: None
-- `vlevel`: Verbosity level. Min:0, Max:2. Default:1
-- `cleanup_dir`: If not None, then instead of using `mesh`, the directory  `cleanup_dir` and its subdirectories are searched for files named 'failed_meshes.txt'. These files are assumed to contain paths to meshes. All meshes found this way are used for simulation. Default: None
-- `p`: If set, the simulation of the first mesh is animated and saved as a gif
-
+- [Earth-2 MIP (Beta)](https://github.com/NVIDIA/earth2mip): Python framework
+  to enable climate researchers and scientists to explore and experiment with
+  AI models for weather and climate.
   
-# Analyze dataset (Used for reverse-engineering parameters)
+## Installation
 
+### PyPi
+
+The recommended method for installing the latest version of Modulus is using PyPi:
+
+```Bash
+pip install nvidia-modulus
 ```
-python examples/cfd/vortex_shedding_mgn/datasetAnalysis.py --dataset <str> --split <str> [--graph_num <int> --time_step <int>]
+
+The installation can be verified by running a simple python code snippet as shown below:
+
+```python
+python
+>>> import torch
+>>> from modulus.models.mlp.fully_connected import FullyConnected
+>>> model = FullyConnected(in_features=32, out_features=64)
+>>> input = torch.randn(128, 32)
+>>> output = model(input)
+>>> output.shape
+torch.Size([128, 64])
 ```
-- `dataset`: Path to the dataset to be analyzed
-- `split`: Which split inside the dataset is to be analyzed
 
-### Optional parameters
-- `graph_num`: Number of the simulation inside the dataset to analyze. Default: None
-- `time_step`: Number of the time step within the `graph_num` to analyze. Default: None
+#### Optional dependencies
 
+Modulus has many optional dependencies that are used in specific components.
+When using pip, all dependencies used in Modulus can be installed with
+`pip install nvidia-modulus[all]`. If you are developing Modulus, developer dependencies
+can be installed using `pip install nvidia-modulus[dev]`. Otherwise, additional dependencies
+can be installed on a case by case basis. A detailed information on installing the
+optional dependencies can be found in the
+[Getting Started Guide](https://docs.nvidia.com/deeplearning/modulus/getting-started/index.html).
+
+### NVCR Container
+
+The recommended Modulus docker image can be pulled from the
+[NVIDIA Container Registry](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/modulus/containers/modulus):
+
+```Bash
+docker pull nvcr.io/nvidia/modulus/modulus:24.01
+```
+
+Inside the container you can clone the Modulus git repositories and get started with the
+examples. Below command show the instructions to launch the modulus container and run an
+examples from this repo.
+
+```bash
+docker run --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 --runtime nvidia \
+--rm -it nvcr.io/nvidia/modulus/modulus:24.01 bash
+git clone https://github.com/NVIDIA/modulus.git
+cd modulus/examples/cfd/darcy_fno/
+pip install warp-lang # install NVIDIA Warp to run the darcy example
+python train_fno_darcy.py
+```
+
+## From Source
+
+### Package
+
+For a local build of the Modulus Python package from source use:
+
+```Bash
+git clone git@github.com:NVIDIA/modulus.git && cd modulus
+
+pip install --upgrade pip
+pip install .
+```
+
+### Source Container
+
+To build Modulus docker image:
+
+```bash
+docker build -t modulus:deploy \
+    --build-arg TARGETPLATFORM=linux/amd64 --target deploy -f Dockerfile .
+```
+
+Alternatively, you can run `make container-deploy`
+
+To build CI image:
+
+```bash
+docker build -t modulus:ci \
+    --build-arg TARGETPLATFORM=linux/amd64 --target ci -f Dockerfile .
+```
+
+Alternatively, you can run `make container-ci`.
+
+Currently only `linux/amd64` and `linux/arm64` platforms are supported. If using
+`linux/arm64`, some dependencies like `warp-lang` might not install correctly.
+
+## Contributing
+
+Modulus is an open source collaboration and its success is rooted in community
+contribution to further the field of Physics-ML. Thank you for contributing to the
+project so others can build on your contribution.
+For guidance on making a contribution to Modulus, please refer to the
+[contributing guidelines](https://github.com/NVIDIA/modulus/blob/main/CONTRIBUTING.md).
+
+## Communication
+
+- Github Discussions: Discuss new architectures, implementations, Physics-ML research, etc.
+- GitHub Issues: Bug reports, feature requests, install issues, etc.
+- Modulus Forum: The [Modulus Forum](https://forums.developer.nvidia.com/c/physics-simulation/modulus-physics-ml-model-framework)
+hosts an audience of new to moderate level users and developers for general chat, online
+discussions, collaboration, etc.
+
+## License
+
+Modulus is provided under the Apache License 2.0, please see [LICENSE.txt](./LICENSE.txt)
+for full license text.
