@@ -31,7 +31,7 @@ python examples/cfd/vortex_sheddin_mgn/main.py --exp_name <str> --data_dir <str>
 - `verbose`: If set, verbosity is activated
 - `inter_eval`: If set, a very small-scale evaluation is performed after every epoch on the test_tiny split
 
-# Generate Meshes
+# Generate meshes
 
 ```
 python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--width <float> --height <float> --ox <float> --oy <float> --osize <float> --inflow_peak_mean <float> --inflow_peak_max_deviation <float> --two_obj --rotate --stretch --circs --tris --quads]
@@ -54,3 +54,19 @@ python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--wid
 - `tris`: If set, triangles are part of the possible objects that can be generated
 - `quads`: If set, squares are part of the possible objects that can be generated
 
+# Simulate flow on a mesh
+
+```
+python dataGeneration/generator.py --dir <str> --mesh <str> [--steps <int> --dt <float> --saveN <int> --mesh_range <tuple(int,int)> --vlevel <int> --cleanup_dir <str> --p]
+```
+- `dir`: Name of the dir to save the simulation results into.
+- `mesh`: Path to the mesh, the simulation is supposed to be run on. Can also be a directory. In that case, all meshes within all subfolders of that directory are simulated
+
+### Optional parameters
+- `steps`: Number of simulation steps. Default: 6020
+- `dt`: Each step progresses `dt` in time. Default: 0.0005
+- `saveN`: Every `saveN`-th step is saved into the final simulation data. The rest is discarded. Default: 20
+- `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (order determined by python's os.walk). None, means all meshes are used. Default: None
+- `vlevel`: Verbosity level. Min:0, Max:2. Default:1
+- `cleanup_dir`: If not None, then instead of using `mesh`, the directory  `cleanup_dir` and its subdirectories are searched for files named 'failed_meshes.txt'. These files are assumed to contain paths to meshes. All meshes found this way are used for simulation. Default: None
+- `p`: If set, the simulation of the first mesh is animated and saved as a gif
