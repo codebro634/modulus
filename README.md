@@ -47,7 +47,7 @@ python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--wid
 - `osize`: Mean object size (e.g. radius for circles)
 - `inflow_peak_mean`:  Mean of the inflow peak
 - `inflow_peak_max_derivation`: Inflow peak is sampled from uniform[inflow_peak_mean-inflow_peak_max_derivation,inflow_peak_mean+inflow_peak_max_derivation]
-- `two_obj`: If set, there is a 50% chance a second object is added
+- `two_obj`: If set, a second object is randomly added
 - `rotate`: If set, the object(s) get randomly rotated
 - `stretch`: If set, the object(s) get randomly stretched/squeezed in the x/y-direction
 - `circs`: If set, circles are part of the possible objects that can be generated
