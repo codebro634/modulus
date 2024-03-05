@@ -19,7 +19,7 @@ python examples/cfd/vortex_sheddin_mgn/main.py --exp_name <str> --data_dir <str>
 - `num_samples`: Number of different simulations used in training
 - `num_time_steps`: Number of time steps per simulation in training
 
-##Optional parameters
+## Optional parameters
 - `ckp`: Number of checkpoint to load. If None is set, the latest is taken. If -1 or there are no saved checkpoints, a model will be newly initialized. Default: None
 - `epochs`: Number of training epochs. Default: 25
 - `hidden`: Hidden dim size for edge/node processor/encoder/decoder. Default: 128
