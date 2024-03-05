@@ -40,13 +40,13 @@ python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--wid
 - `num_meshes`: Number of meshes to generate
 
 ### Optional parameters
-- `width`: Width of the channel
-- `height`: Height of the channel
-- `ox`: Mean of object's mid point's x-coordinate
-- `oy`: Mean of object's mid point's y-coordinate
-- `osize`: Mean object size (e.g. radius for circles)
-- `inflow_peak_mean`:  Mean of the inflow peak
-- `inflow_peak_max_derivation`: Inflow peak is sampled from uniform[inflow_peak_mean-inflow_peak_max_derivation,inflow_peak_mean+inflow_peak_max_derivation]
+- `width`: Width of the channel. Default: 1.6
+- `height`: Height of the channel. Default: 0.41
+- `ox`: Mean of object's mid point's x-coordinate. Default: 0.325
+- `oy`: Mean of object's mid point's y-coordinate. Default: 0.2
+- `osize`: Mean object size (e.g. radius for circles). Default: 0.05
+- `inflow_peak_mean`:  Mean of the inflow peak. Default: 1.25
+- `inflow_peak_max_derivation`: Inflow peak is sampled from uniform[inflow_peak_mean-inflow_peak_max_derivation,inflow_peak_mean+inflow_peak_max_derivation]. Default: 1.0
 - `two_obj`: If set, a second object is randomly added
 - `rotate`: If set, the object(s) get randomly rotated
 - `stretch`: If set, the object(s) get randomly stretched/squeezed in the x/y-direction
