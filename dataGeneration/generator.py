@@ -8,6 +8,11 @@ import imageio
 import argparse
 import json
 
+"""
+    Script for flow simulation using FEniCS and the Incremental Pressure Correction Scheme (IPCS). 
+    The Code is a modification of the tutorial found at: https://fenicsproject.org/pub/tutorial/html/._ftut1009.html
+"""
+
 #TODO check if this code works for multiple obstacles
 
 parser = argparse.ArgumentParser()
@@ -25,7 +30,9 @@ args = parser.parse_args()
 results_dir = args.dir
 os.makedirs(results_dir, exist_ok=True)
 
+
 mesh_paths = []
+# If necessary, add meshes to resimulate to list
 if args.cleanup_dir is not None:
     for root, dirs, files in os.walk(args.cleanup_dir):
         if 'failed_meshes.txt' in files:
@@ -36,6 +43,7 @@ if args.cleanup_dir is not None:
         raise Exception(f"No erreoneous simulations found in {args.cleanup_dir}")
 elif args.mesh is None:
     mesh_paths = [None]
+# Collect all meshes found in the args.mesh folder and its subfolders
 else:
     mesh_paths = []
     for root, dirs, files in os.walk(args.mesh):
@@ -62,14 +70,16 @@ for sim, mesh_path in enumerate(mesh_paths):
     
     
     start = time.time()
-    
-    T = 6.0            # final time
+
+    # Setup parameters
     num_steps = args.steps   # number of time steps
     dt = args.dt # time step size
     N_save = args.saveN #Every N-th time step is saved
+
+    #Default PDE parameters
     mu = 0.001         # dynamic viscosity
     rho = 1            # density
-    inflow_peak = 1.25
+    inflow_peak = 1.25 #Can be overwritten by if it is specified in Mesh's metadata
     
     # Create/Load mesh
     if mesh_path is not None:
@@ -260,10 +270,12 @@ for sim, mesh_path in enumerate(mesh_paths):
             os.remove(image)
     
     
-    #Save data in numpy format
+    """Extract data in numpy format from the simulation"""
+
     n = mesh.num_vertices()
     sim_data = dict()
-    
+
+    #Extract velocities
     velocity = np.zeros(shape=(num_steps, n, 2),dtype=np.float32)
     times_v = timeseries_u.vector_times()
     for i,t in enumerate(times_v):
@@ -272,7 +284,8 @@ for sim, mesh_path in enumerate(mesh_paths):
         velo_t = np.concatenate( (x[0:n,np.newaxis],x[n:,np.newaxis]), axis=-1)
         velocity[i] = velo_t
     sim_data['velocity'] = velocity
-    
+
+    #Extract pressure values
     pressure = np.zeros(shape=(num_steps,n,1),dtype=np.float32)
     times_p = timeseries_p.vector_times()
     for i,t in enumerate(times_p):
@@ -280,12 +293,13 @@ for sim, mesh_path in enumerate(mesh_paths):
         x = p_.compute_vertex_values(mesh)
         pressure[i] = x[:,np.newaxis]
     sim_data['pressure'] = pressure
-    
+
+    #Extract mesh graph data
     sim_data['cells'] = np.repeat(np.array(list(mesh.cells()),dtype=np.int32)[np.newaxis,...],num_steps,axis=0)
     sim_data['mesh_pos'] = np.repeat(np.array(list(mesh.coordinates()),dtype=np.float32)[np.newaxis,...],num_steps,axis=0)
     
-    #From https://fenicsproject.org/qa/2989/vertex-on-mesh-boundary/
-    def get_vertices_with_cond(mesh,condition):
+
+    def get_vertices_with_cond(mesh, condition): #From https://fenicsproject.org/qa/2989/vertex-on-mesh-boundary/
         V = FunctionSpace(mesh, 'CG', 1)
         bc = DirichletBC(V, 1, condition)
         u = Function(V)
@@ -293,7 +307,8 @@ for sim, mesh_path in enumerate(mesh_paths):
         d2v = dof_to_vertex_map(V)
         vertices_on_boundary = d2v[u.vector() == 1.0]
         return vertices_on_boundary
-    
+
+    #Extract node types
     vertex_types = []
     v_inflow, v_outflow, v_walls, v_cylinder  = get_vertices_with_cond(mesh,inflow), get_vertices_with_cond(mesh,outflow), get_vertices_with_cond(mesh,walls), get_vertices_with_cond(mesh, obstacle)
     for v in range(mesh.num_vertices()):
@@ -308,6 +323,7 @@ for sim, mesh_path in enumerate(mesh_paths):
             
     sim_data['node_type'] = np.repeat(np.array(vertex_types,dtype=np.int32)[np.newaxis,:,np.newaxis],num_steps,axis=0)
 
+    #Only save every N-th time step and discard the rest
     for k, v in sim_data.items():
         sim_data[k] = sim_data[k][(N_save-1)::N_save] #Skip first data points to avoid initial chaos phase
 
@@ -316,7 +332,8 @@ for sim, mesh_path in enumerate(mesh_paths):
     #Remove temp files
     os.remove(tut+".h5")
     os.remove(tpt+".h5")
-    
+
+#Save all simulations into a single file
 np.save(results_dir+"/simdata.npy",sims_data)
 np.savetxt(results_dir+"/failed_meshes.txt",failed_meshes, delimiter=',', fmt="%s")
 

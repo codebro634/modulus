@@ -61,9 +61,9 @@ class VortexSheddingDataset(DGLDataset):
     split : str, optional
         Dataset split ["train", "eval", "test"], by default "train"
     num_samples : int, optional
-        Number of samples, by default 1000
+        Number of samples, by default 1000. If None, the entire dataset is taken
     num_steps : int, optional
-        Number of time steps in each sample, by default 600
+        Number of time steps in each sample, by default 600. If None, the entire simulation is taken
     noise_std : float, optional
         The standard deviation of the noise added to the "train" split, by default 0.02
     force_reload : bool, optional
@@ -77,10 +77,10 @@ class VortexSheddingDataset(DGLDataset):
         name="dataset",
         data_dir=None,
         split="train",
-        num_samples=None, #If none, the entire dataset is taken
+        num_samples=None,
         start_step=0,
         start_sim=0,
-        num_steps=None, #If none, the entire simulation is taken
+        num_steps=None,
         noise_std=0.02,
         force_reload=False,
         verbose=True,
@@ -94,17 +94,20 @@ class VortexSheddingDataset(DGLDataset):
         self.data_dir = data_dir
         self.split = split
         self.start_step = start_step
+
+        # Do-nothing dataset iteration to get the number of samples and time steps
         if num_samples is None:
-            dataset_iterator = VortexSheddingDataset.get_dataset_iterator(data_dir, split,start_sim=start_sim)
+            dataset_iterator = VortexSheddingDataset.get_dataset_iterator(data_dir, split, start_sim=start_sim)
             num_samples = 0
+            max_steps = 0
             while True:
                 try:
                     x = dataset_iterator.get_next()
-                    max_steps = x["mesh_pos"].shape[0]
+                    max_steps = max(max_steps, x["mesh_pos"].shape[0])
                     num_samples += 1
                 except Exception:
                     break
-        num_samples = num_samples - start_sim
+
         self.num_samples = num_samples
         num_steps = num_steps if num_steps is not None else max_steps - start_step
         self.num_steps = num_steps
@@ -113,20 +116,23 @@ class VortexSheddingDataset(DGLDataset):
 
         if verbose:
             print(f"Preparing the {split} dataset of {data_dir} ...", flush=True)
-        # create the graphs with edge features
 
-        dataset_iterator = VortexSheddingDataset.get_dataset_iterator(data_dir, split)
+        # create the graphs with edge features
         self.graphs, self.cells, self.node_type = [], [], []
         noise_mask, self.rollout_mask = [], []
         self.mesh_pos = []
 
+        #Iterate dataset and load graph features only (i.e. positions and distance encoding into edges)
+        dataset_iterator = VortexSheddingDataset.get_dataset_iterator(data_dir, split, start_sim=start_sim)
         for i in range(self.num_samples):
 
+            #Get graph data as numpy arr
             if i % 20 == 0 and verbose:
                 print(f"Loaded {i} / {self.num_samples} samples...", flush=True)
             data_np = dataset_iterator.get_next()
             data_np = {key: arr[start_step:num_steps+start_step] if isinstance(arr, np.ndarray) else arr[start_step:num_steps+start_step].numpy() for key, arr in data_np.items()}
 
+            #Load graph features
             src, dst = self.cell_to_adj(data_np["cells"][0])  # assuming stationary mesh
             graph = self.create_graph(src, dst, dtype=torch.int32)
             graph = self.add_edge_features(graph, data_np["mesh_pos"][0])
@@ -139,6 +145,7 @@ class VortexSheddingDataset(DGLDataset):
                 self.mesh_pos.append(torch.tensor(data_np["mesh_pos"][0]))
                 self.cells.append(data_np["cells"][0])
                 self.rollout_mask.append(self._get_rollout_mask(node_type))
+
         if verbose:
             print("Computing the edge stats...", flush=True)
 
@@ -161,10 +168,11 @@ class VortexSheddingDataset(DGLDataset):
                 self.edge_stats["edge_std"],
             )
 
-        # create the node features
+
         if verbose:
             print("Computing the node features...", flush=True)
 
+        # create the node features and targets
         dataset_iterator = VortexSheddingDataset.get_dataset_iterator(data_dir,split, start_sim=start_sim)
         self.node_features, self.node_targets = [], []
         for i in range(self.num_samples):
@@ -216,59 +224,6 @@ class VortexSheddingDataset(DGLDataset):
                 self.node_stats["pressure_mean"],
                 self.node_stats["pressure_std"],
             )
-
-        # self.divisions = divisions
-        # self.current_division = 0
-        #
-        # os.makedirs(self.data_dir + "/train_divs", exist_ok=True)
-        # for div in range(divisions):
-        #     current_division = {"graphs": [], "node_features": [], "node_targets_vel": [], "node_targets_pr": [], "node_type": [], "mesh_pos": [],"cells": [], "rollout_mask": []}
-        #     l, u = self.get_ith_division_range(div)
-        #     for idx in range(l,u):
-        #         print(idx)
-        #         gidx = idx // (self.num_steps - 1)  # graph index
-        #         tidx = idx % (self.num_steps - 1)  # time step index
-        #         #current_division["graphs"].append(self.graphs[gidx])
-        #         #current_division["node_features"].append(self.node_features[0]["velocity"][0])
-        #         #current_division["node_targets_vel"].append(self.node_targets[gidx]["velocity"][tidx])
-        #         #current_division["node_targets_pr"].append(self.node_targets[gidx]["pressure"][tidx])
-        #         #current_division["node_type"].append(self.node_type[gidx])
-        #         #current_division["mesh_pos"].append(self.mesh_pos[gidx]) if self.split != "train" else None
-        #         #current_division["cells"].append(self.cells[gidx]) if self.split != "train" else None
-        #         #current_division["rollout_mask"].append(self.rollout_mask[gidx]) if self.split != "train" else None
-        #
-        #     #Save division
-        #     #current_division["node_features"] = np.array(current_division["node_features"])
-        #     current_division["node_features"] = np.repeat(self.node_features[0]["velocity"][0][:,np.newaxis],u-l, axis=1)
-        #     np.save(self.data_dir + "/train_divs/" + f"division_{div}.npy", current_division)
-        #
-        #
-        # self.node_features = None
-        # self.node_targets = None
-        # self.node_type = None
-        # self.mesh_pos = None
-        # self.cells = None
-        # self.rollout_mask = None
-        # self.graphs = None
-
-
-
-
-    # def get_ith_division_range(self, i):
-    #     return (i * self.length // self.divisions, (i + 1) * self.length // self.divisions)
-    #
-    # def save_as_divisions(self, divisions):
-    #     pass
-    #
-    # def load_division(self, division):
-    #     pass
-    #
-    # def load_full(self):
-    #     pass
-    #
-    # def shuffle(self):
-    #     #Shuffle all arrays with the same permutation with np function
-    #     pass
 
 
     def __getitem__(self, idx):
@@ -503,6 +458,7 @@ class VortexSheddingDataset(DGLDataset):
             outvar[k] = data
         return outvar
 
+    # Load dataset iterator. Accepts .tfrecord or .npy format.
     @staticmethod
     def get_dataset_iterator(data_dir, split, start_sim = 0):
         if os.path.exists(data_dir + "/" + split + ".tfrecord"):

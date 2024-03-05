@@ -1,11 +1,28 @@
 import math
 import numpy as np
+import argparse
 from modulus.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
+
+"""
+    Helper script to analyze a vortex shedding dataset at a specific time step.
+"""
 
 TOL = 0.025
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--graph_num", type=int, default=0, help="Number of simulation inside dataset to analyze.")
+parser.add_argument("--time_step", type=int, default=0, help="Number of time step to analyze.")
+parser.add_argument('--dataset', type=str, default = "raw_dataset/cylinder_flow/cylinder_flow/", help='Path to dataset.')
+parser.add_argument('--split', type=str, default = "test", help='Which split of the dataset to analyze.')
+args = parser.parse_args()
+
+graph_num = args.graph_num
+time_step = args.time_step
+dataset = args.dataset
+split = args.split
+
 def average_object_stats():
-    itr = VortexSheddingDataset.get_dataset_iterator(dataset, "test")
+    itr = VortexSheddingDataset.get_dataset_iterator(dataset, split)
     inflows, object_centers_x, object_centers_y, object_radii = [], [], [], []
     num = 0
     while True:
@@ -35,11 +52,7 @@ def average_object_stats():
     print(f"Object center y mean: {np.mean(object_centers_y)}, std: {np.std(object_centers_y)}")
     print(f"Object radius mean: {np.mean(object_radii)}, std: {np.std(object_radii)}")
 
-dataset = "raw_dataset/cylinder_flow/repeated73"
-graph_num = 0
-time_step = 0
-
-itr = VortexSheddingDataset.get_dataset_iterator(dataset, "test")
+itr = VortexSheddingDataset.get_dataset_iterator(dataset, split)
 for _ in range(graph_num+1):
     simulation = itr.get_next()
 simulation = {key: arr if isinstance(arr, np.ndarray) else arr.numpy() for key, arr in simulation.items()}
@@ -102,4 +115,4 @@ for i in range(100):
             min_node = k
     print(f"({simulation['mesh_pos'][time_step,min_node][0].item()},{simulation['mesh_pos'][time_step,min_node][1].item()}): {simulation['velocity'][time_step,min_node,0]} | {simulation['pressure'][time_step,min_node,0]}")
 
-#average_object_stats()
+average_object_stats()

@@ -269,6 +269,7 @@ def load_checkpoint(
     scaler: Union[scaler, None] = None,
     epoch: Union[int, None] = None,
     device: Union[str, torch.device] = "cpu",
+    verbose: bool = True,
 ) -> int:
     """Checkpoint loading utility
 
@@ -300,10 +301,11 @@ def load_checkpoint(
         Loaded epoch
     """
     # Check if checkpoint directory exists
-    if epoch==-1 or (not Path(path).is_dir()):
-        #checkpoint_logging.warning(
-        #    f"Provided checkpoint directory {path} does not exist, skipping load"
-        #)
+    if epoch == -1 or (not Path(path).is_dir()):
+        if verbose and epoch == -1:
+            print(f"Provided epoch -1, skipping load", flush=True)
+        elif verbose:
+            print(f"Provided checkpoint directory {path} does not exist, skipping load", flush=True)
         return 0
 
     # == Loading model checkpoint ==
@@ -320,9 +322,8 @@ def load_checkpoint(
                 path, name, index=epoch, model_type=model_type
             )
             if not Path(file_name).exists():
-                checkpoint_logging.error(
-                    f"Could not find valid model file {file_name}, skipping load"
-                )
+                if verbose:
+                    print(f"Could not find valid model file {file_name}, skipping load")
                 continue
             # Load state dictionary
             if isinstance(model, modulus.models.Module):
@@ -330,41 +331,42 @@ def load_checkpoint(
             else:
                 model.load_state_dict(torch.load(file_name, map_location=device))
 
-            checkpoint_logging.success(
-                f"Loaded model state dictionary {file_name} to device {device}"
-            )
+            if verbose:
+                print( f"Loaded model state dictionary {file_name} to device {device}")
 
     # == Loading training checkpoint ==
     checkpoint_filename = _get_checkpoint_filename(path, index=epoch, model_type="pt")
     if not Path(checkpoint_filename).is_file():
-        checkpoint_logging.warning(
-            "Could not find valid checkpoint file, skipping load"
-        )
+        if verbose:
+            print(f"Could not find valid checkpoint file, skipping load")
         return 0
 
     checkpoint_dict = torch.load(checkpoint_filename, map_location=device)
-    checkpoint_logging.success(
-        f"Loaded checkpoint file {checkpoint_filename} to device {device}"
-    )
+    if verbose:
+        print(f"Loaded checkpoint file {checkpoint_filename} to device {device}")
 
     # Optimizer state dict
     if optimizer and "optimizer_state_dict" in checkpoint_dict:
         optimizer.load_state_dict(checkpoint_dict["optimizer_state_dict"])
-        checkpoint_logging.success("Loaded optimizer state dictionary")
+        if verbose:
+            print("Loaded optimizer state dictionary")
 
     # Scheduler state dict
     if scheduler and "scheduler_state_dict" in checkpoint_dict:
         scheduler.load_state_dict(checkpoint_dict["scheduler_state_dict"])
-        checkpoint_logging.success("Loaded scheduler state dictionary")
+        if verbose:
+            print("Loaded scheduler state dictionary")
 
     # Scaler state dict
     if scaler and "scaler_state_dict" in checkpoint_dict:
         scaler.load_state_dict(checkpoint_dict["scaler_state_dict"])
-        checkpoint_logging.success("Loaded grad scaler state dictionary")
+        if verbose:
+            print("Loaded grad scaler state dictionary")
 
     if "static_capture_state_dict" in checkpoint_dict:
         _StaticCapture.load_state_dict(checkpoint_dict["static_capture_state_dict"])
-        checkpoint_logging.success("Loaded static capture state dictionary")
+        if verbose:
+            print("Loaded static capture state dictionary")
 
     epoch = 0
     if "epoch" in checkpoint_dict:

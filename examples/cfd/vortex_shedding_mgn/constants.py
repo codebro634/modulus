@@ -23,23 +23,22 @@ class Constants(BaseModel):
     # data configs
     data_dir: str = "./raw_dataset/cylinder_flow/cylinder_flow"
     exp_name: str = "model"
-    exp_group: str = "multihop"
-    ckp: int = None
+    ckp: int = None #None loads the latest checkpoint, -1 initializes a new model
 
     # training configs
     batch_size: int = 1
     epochs: int = 25
-    first_step: int = 0  # start time step
+    first_step: int = 0  # start time step of each simulation
     num_training_samples: int = 400
     num_training_time_steps: int = 300
     lr: float = 0.0001
     lr_decay_rate: float = 0.82540418526
-    hidden_dim_edge_processor: int = 128
+    hidden_dim: int = 128
     num_input_features: int = 6
     num_output_features: int = 3
     num_edge_features: int = 3
     ckpt_path: str = "checkpoints"
-    ckpt_name: str = "model.pt"
+    ckpt_name: str = "model"
     multi_hop_edges: dict = None # Possible keys: agg in {sum, concat, concat_sum} and weight of agg=sum
 
     # performance configs
@@ -48,7 +47,8 @@ class Constants(BaseModel):
     jit: bool = False
 
     # test & visualization configs
-    inter_eval: bool = False
+    verbose: bool = True
+    inter_eval: bool = False #Whether or not to do a mini-evaluation after each epoch
     num_test_samples: int = 40
     num_test_time_steps: int = 300
     viz_vars: Tuple[str, ...] = ("u", "v", "p")

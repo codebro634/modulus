@@ -33,7 +33,7 @@ from modulus.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
 from modulus.launch.utils import load_checkpoint, save_checkpoint
 from constants import Constants
 
-
+#MGN Trainer manages the training loop for the MeshGraphNet model
 class MGNTrainer:
 
     def __init__(self, C: Constants):
@@ -47,10 +47,12 @@ class MGNTrainer:
             start_step = C.first_step,
             num_samples=C.num_training_samples,
             num_steps=C.num_training_time_steps,
+            verbose=C.verbose
         )
 
         # instantiate dataloader
-        print("Creating dataloader...", flush=True)
+        if C.verbose:
+            print("Creating dataloader...", flush=True)
         self.dataloader = GraphDataLoader(
             dataset,
             batch_size=C.batch_size,
@@ -61,13 +63,14 @@ class MGNTrainer:
         )
 
         # instantiate the model
-        print("Instantiating model...", flush=True)
+        if C.verbose:
+            print("Instantiating model...", flush=True)
         self.model = MeshGraphNet(
-            C.num_input_features, C.num_edge_features, C.num_output_features, hidden_dim_edge_processor=C.hidden_dim_edge_processor,
-            hidden_dim_processor=C.hidden_dim_edge_processor,
-            hidden_dim_node_encoder=C.hidden_dim_edge_processor,
-            hidden_dim_node_decoder=C.hidden_dim_edge_processor,
-            hidden_dim_edge_encoder=C.hidden_dim_edge_processor,
+            C.num_input_features, C.num_edge_features, C.num_output_features, hidden_dim_edge_processor=C.hidden_dim,
+            hidden_dim_processor=C.hidden_dim,
+            hidden_dim_node_encoder=C.hidden_dim,
+            hidden_dim_node_decoder=C.hidden_dim,
+            hidden_dim_edge_encoder=C.hidden_dim,
             multi_hop_edges=C.multi_hop_edges
         )
         if C.jit:
@@ -91,16 +94,18 @@ class MGNTrainer:
 
         # load checkpoint
         self.epoch_init = load_checkpoint(
-            os.path.join(C.ckpt_path, C.ckpt_name),
+            os.path.join(C.ckpt_path, C.ckpt_name, "checkpoints"),
             models=self.model,
             optimizer=self.optimizer,
             scheduler=self.scheduler,
             scaler=self.scaler,
             device=C.device,
             epoch=C.ckp,
+            verbose=C.verbose
         )
 
-        print("Finished MGN Trainer init", flush=True)
+        if C.verbose:
+            print("Finished MGN Trainer init", flush=True)
 
     def train(self, graph):
         graph = graph.to(self.C.device)
@@ -128,7 +133,10 @@ class MGNTrainer:
             self.optimizer.step()
 
 
-#By ChatGPT
+
+
+#Proudly written by ChatGPT!
+#Prints memory info for debugging purposes
 def print_memory_info():
     # Get memory information
     memory_info = psutil.virtual_memory()
@@ -141,49 +149,63 @@ def print_memory_info():
             bytes_size /= 1024.0
         return f"{bytes_size:.2f} {unit}"
 
-    # Print used and available memory
     print(f"Used Memory: {convert_bytes(memory_info.used)}")
     print(f"Available Memory: {convert_bytes(memory_info.available)}")
+
+    #Output GPU memory info
     GPUtil.showUtilization()
 
+"""
+ Starts the training process for the MeshGraphNet model
+"""
 def train(C: Constants):
 
-    # save constants to JSON file
-    os.makedirs(C.ckpt_path, exist_ok=True)
+    # save training constants to JSON file
+    log_path = os.path.join(C.ckpt_path, C.ckpt_name)
+    os.makedirs(log_path, exist_ok=True)
     with open(
-        os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".json")), "w"
+        os.path.join(log_path, "hyperparams.json"), "w"
     ) as json_file:
         json.dump(C.__dict__, json_file, indent=4)
 
+    # Start training loop
     trainer = MGNTrainer(C)
-
     start = time.time()
-    print("Start training", flush=True)
+
+    if C.verbose:
+        print("Start training", flush=True)
     for epoch in range(trainer.epoch_init, C.epochs):
 
         for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
             if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or (i % 1000 == 0 and i < 10000) or i % 10000 == 0:
-                print(f"Epoch {epoch} | Graphs processed:{i}", flush=True)
+                if C.verbose:
+                    print(f"Epoch {epoch} | Graphs processed:{i}", flush=True)
 
+        #Log epoch info
         log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
-
-        with open(os.path.join(C.ckpt_path, C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
+        with open(os.path.join(log_path, "log.txt"), 'a') as file:
             file.write(log_string+ "\n")
-        print(log_string, flush=True)
+        if C.verbose:
+            print(log_string, flush=True)
 
+        #Save current model
         save_checkpoint(
-            os.path.join(C.ckpt_path, C.ckpt_name),
+            os.path.join(log_path, "checkpoints"),
             models=trainer.model,
             optimizer=trainer.optimizer,
             scheduler=trainer.scheduler,
             scaler=trainer.scaler,
             epoch=epoch,
         )
-        print(f"Saved model", flush=True)
+        if C.verbose:
+            print(f"Saved model", flush=True)
 
+        #If necessary, evaluate the model at this stage
         if C.inter_eval:
             evaluate_model(C=C, intermediate_eval=True)
 
         start = time.time()
-    print("Training finished", flush=True)
+
+    if C.verbose:
+        print("Training finished", flush=True)

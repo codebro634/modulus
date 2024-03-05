@@ -28,13 +28,16 @@ from modulus.launch.utils import load_checkpoint
 from constants import Constants
 from time import time
 
+"""
+MGNRollout manages the inference loop for the MeshGraphNet model.
 
+inter_sim: [None,int]:
+ If int, then the model will be evaluated on the inter_sim-th simulation in the test_tiny dataset split.
+ If None, then the model will be evaluated on the test dataset split.
+"""
 class MGNRollout:
     def __init__(self, C, inter_sim=None):
-        #set constants
         self.C = C
-
-        # set device
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         # instantiate dataset
@@ -44,9 +47,9 @@ class MGNRollout:
             split="test_tiny" if inter_sim is not None else "test",
             start_step=C.first_step,
             start_sim=inter_sim if inter_sim is not None else 0,
-            num_samples=C.num_test_samples if inter_sim is None else None,
+            num_samples=C.num_test_samples if inter_sim is None else 1,
             num_steps=C.num_test_time_steps,
-            verbose = False
+            verbose=C.verbose and inter_sim is None,
         )
 
         # instantiate dataloader
@@ -59,7 +62,12 @@ class MGNRollout:
 
         # instantiate the model
         self.model = MeshGraphNet(
-            C.num_input_features, C.num_edge_features, C.num_output_features, hidden_dim_edge_processor=C.hidden_dim_edge_processor,multi_hop_edges=C.multi_hop_edges
+            C.num_input_features, C.num_edge_features, C.num_output_features, hidden_dim_edge_processor=C.hidden_dim,
+            hidden_dim_processor=C.hidden_dim,
+            hidden_dim_node_encoder=C.hidden_dim,
+            hidden_dim_node_decoder=C.hidden_dim,
+            hidden_dim_edge_encoder=C.hidden_dim,
+            multi_hop_edges=C.multi_hop_edges
         )
         if C.jit:
             self.model = torch.jit.script(self.model).to(self.device)
@@ -71,23 +79,27 @@ class MGNRollout:
 
         # load checkpoint
         _ = load_checkpoint(
-            os.path.join(C.ckpt_path, C.ckpt_name),
+            os.path.join(C.ckpt_path, C.ckpt_name, "checkpoints"),
             models=self.model,
             device=self.device,
-            epoch=C.ckp
+            epoch=C.ckp,
+            verbose=C.verbose and inter_sim is None,
         )
 
         self.var_identifier = {"u": 0, "v": 1, "p": 2}
 
+    """
+        Rollout the model and calculate the RMSE for the velocity and pressure fields for 1, 50 and all steps in the loaded dataset.
+        
+        inter_sim: If not None, then the results will also be logged to 'logs.txt'.
+    """
     def predict(self, inter_sim=None):
         self.pred, self.exact, self.faces, self.graphs, self.pred_one_step = [], [], [], [], []
         stats = {
             key: value.to(self.device) for key, value in self.dataset.node_stats.items()
         }
 
-        """
-            Index 0 velocity, 1 pressure + veloctiy
-        """
+        #Indices. 0: velocity, 1: pressure
         mse = torch.nn.MSELoss()
         mse_1_step, mse_50_step, mse_all_step = np.zeros(2), np.zeros(2), np.zeros(2)
         num_steps, num_50_steps = 0, 0
@@ -110,7 +122,7 @@ class MGNRollout:
                 stats["pressure_std"],
             )
 
-            # inference step
+            # Prepare data for inference step
             invar = graph.ndata["x"].clone()
 
             if i % (self.C.num_test_time_steps - 1) != 0: #If = 0, then new graph starts
@@ -125,6 +137,7 @@ class MGNRollout:
                 one_step_invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
             )
 
+            #Make prediction and track time
             start = time()
             pred_i = self.model(invar, graph.edata["x"], graph).detach()  # predict
             dt_allstep = time() - start
@@ -206,7 +219,7 @@ class MGNRollout:
             self.faces.append(torch.squeeze(cells).numpy())
             self.graphs.append(graph.cpu())
 
-        #Save results
+        #Take average and sqrt
         rmse_1_step = np.sqrt(mse_1_step / num_steps)
         rmse_50_step = np.sqrt(mse_50_step / num_50_steps)
         rmse_all_step = np.sqrt(mse_all_step / num_steps)
@@ -215,6 +228,7 @@ class MGNRollout:
         tallstep /= num_steps
 
         result_dict = {
+                    f"Model {self.C.ckpt_name} checkpoint": self.C.ckp,
                     "RMSE (velo) 1 step": rmse_1_step[0],
                     "RMSE (velo) 50 step": rmse_50_step[0],
                     "RMSE (velo) all step": rmse_all_step[0],
@@ -226,15 +240,21 @@ class MGNRollout:
                     "Avg time all steps": tallstep
         }
 
+        # Print and log results
         if inter_sim is None:
-            with open(os.path.join(self.C.ckpt_path, self.C.ckpt_name.replace(".pt", ".txt")), 'a') as file:
+            path = os.path.join(self.C.ckpt_path, self.C.ckpt_name)
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+            with open(os.path.join(self.C.ckpt_path, self.C.ckpt_name, "log.txt"), 'a') as file:
                 for key, value in result_dict.items():
                     out_str = f"{key}: {value}"
                     file.write(out_str+"\n")
-                    print(out_str, flush=True)
+                    if self.C.verbose:
+                        print(out_str, flush=True)
 
         else:
-            print(f"Inter eval sim {inter_sim}: 1step {rmse_1_step[0]}, 50step {rmse_50_step[0]}, allstep {rmse_all_step[0]}")
+            if self.C.verbose:
+                print(f"Inter eval sim {inter_sim}: 1step {rmse_1_step[0]}, 50step {rmse_50_step[0]}, allstep {rmse_all_step[0]}")
 
 
     def init_animation(self, idx):
@@ -293,19 +313,27 @@ class MGNRollout:
         )
         return self.fig
 
-
+"""
+    intermediate_eval: If True, then the model will only evaluated on each simulation in the test_tiny dataset split. 
+                       If False, then the model will be evaluated on the entire test dataset split, the result will be 
+                       logged into 'logs.txt'. Furthermore, the model's prediction is animated and saved into 'animations'.
+"""
 def evaluate_model(C: Constants, intermediate_eval: bool = False):
     if intermediate_eval:
-        rollout = MGNRollout(C,inter_sim=0)
-        num_samples = rollout.dataset.num_samples
+        num_samples = VortexSheddingDataset( name="vortex_shedding_test", data_dir=C.data_dir, split="test_tiny", verbose=False).num_samples
         for i in range(num_samples):
             rollout = MGNRollout(C,inter_sim=i)
             rollout.predict(inter_sim=i)
     else:
-        print("Rollout started...", flush=True)
+        if C.verbose:
+            print("Rollout started...", flush=True)
+
+        #Evaluate model
         rollout = MGNRollout(C)
-        idx = [rollout.var_identifier[k] for k in C.viz_vars]
         rollout.predict()
+
+        #Animate model's predictions on all test graphs
+        idx = [rollout.var_identifier[k] for k in C.viz_vars]
         for i in idx:
             rollout.init_animation(i)
             ani = animation.FuncAnimation(

@@ -6,12 +6,22 @@ import math
 import os
 import json
 
+"""
+    gObject defines a geometric which will be a hole in the rectangular mesh domain.
+    
+    shape: str - The shape of the object. Supported shapes are 'ellipse', 'rect' and 'tri'
+    args: dict - The arguments for the shape. For 'ellipse' the arguments are 'x0': [x, y], 'w': width, 'h': height
+                                              For 'rect' the arguments are 'x0': [x, y], 'x1': [x, y], 'x2': [x, y], 'x3': [x, y]
+                                              For 'tri' the arguments are 'x0': [x, y], 'x1': [x, y], 'x2': [x, y]
+"""
+
 class gObject:
 
     def __init__(self, shape: str = 'rect', args:dict = {'x0': [0.33, 0.2], 'x1': [0.38, 0], 'x2': [0.33, 0.25]}):
         self.shape = shape
         self.args = args
 
+    #Returns the string to be used in the boundary condition of the object for Fenics
     def boundary_string(self):
         tol, dp = 0.05, 5
         if self.shape == 'ellipse':
@@ -36,6 +46,12 @@ class gObject:
         else:
             raise Exception(f'Shape {self.shape} not supported for boundary string')
 
+"""
+    Methods for manipulating gObjects:
+    move_object: Moves the object by dx and dy
+    rotate_object: Rotates the object by an angle
+    squish_object: Squishes the object by xstretch and ystretch
+"""
 
 def move_object(obj: gObject, dx:float = 0.0, dy:float = 0.0) -> gObject:
     obj = deepcopy(obj)
@@ -62,12 +78,6 @@ def move_object(obj: gObject, dx:float = 0.0, dy:float = 0.0) -> gObject:
         raise Exception(f'Shape {obj.shape} not supported for squishing')
     return obj
 
-def create_ellipse(mid, w,h) -> gObject:
-    return gObject(shape='ellipse', args={'x0': mid, 'w': w, 'h': h })
-
-def create_rect(mid, w, h) -> gObject:
-    return gObject(shape='rect', args={'x0': [mid[0]+w/2, mid[1]+h/2], 'x1': [mid[0]-w/2, mid[1]+h/2], 'x2': [mid[0]-w/2, mid[1]-h/2], 'x3': [mid[0]+w/2, mid[1]-h/2]})
-
 def rotate(x, y, angle):
     angle = math.radians(angle)
     return [(x[0] - y[0]) * math.cos(angle) - (x[1] - y[1]) * math.sin(angle) + y[0],
@@ -93,11 +103,6 @@ def rotate_object(obj: gObject, angle: float) -> gObject:
     else:
         raise Exception(f'Shape {obj.shape} not supported for rotation')
 
-def create_equi_tri(mid, r) -> gObject:
-    a = math.radians(60)
-    corners = [mid[0] , mid[1] - r], [mid[0] + r*math.sin(a), mid[1] + r*math.cos(a)], [mid[0] - r*math.sin(a), mid[1] + r*math.cos(a)]
-    tri = gObject(shape='tri', args={'x0': corners[0], 'x1': corners[1], 'x2': corners[2]})
-    return rotate_object(tri, 30)
 
 def squish_object(obj: gObject, xstretch: float = 1.0, ystretch: float = 1.0) -> gObject:
     obj = deepcopy(obj)
@@ -126,6 +131,29 @@ def squish_object(obj: gObject, xstretch: float = 1.0, ystretch: float = 1.0) ->
         raise Exception(f'Shape {obj.shape} not supported for squishing.')
     return obj
 
+
+
+
+def create_ellipse(mid, w,h) -> gObject:
+    return gObject(shape='ellipse', args={'x0': mid, 'w': w, 'h': h })
+
+def create_rect(mid, w, h) -> gObject:
+    return gObject(shape='rect', args={'x0': [mid[0]+w/2, mid[1]+h/2], 'x1': [mid[0]-w/2, mid[1]+h/2], 'x2': [mid[0]-w/2, mid[1]-h/2], 'x3': [mid[0]+w/2, mid[1]-h/2]})
+
+def create_equi_tri(mid, r) -> gObject:
+    a = math.radians(60)
+    corners = [mid[0] , mid[1] - r], [mid[0] + r*math.sin(a), mid[1] + r*math.cos(a)], [mid[0] - r*math.sin(a), mid[1] + r*math.cos(a)]
+    tri = gObject(shape='tri', args={'x0': corners[0], 'x1': corners[1], 'x2': corners[2]})
+    return rotate_object(tri, 30)
+
+"""
+    create_mesh creates a triangular mesh with a rectangular domain and with holes defined by the objects in the objects list.
+    
+    height: float - The height of the rectangular domain
+    width: float - The width of the rectangular domain
+    objects: list[gObject] - The list of objects that will be holes in the mesh
+    mesh_size: float - The size of the mesh triangles
+"""
 def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [gObject()], mesh_size = 0.0225):
     with pygmsh.geo.Geometry() as geom:
         geo_objects = []
@@ -173,21 +201,22 @@ def save_mesh(mesh: meshio.Mesh, metadata: dict, mesh_name: str, folder: str):
     path = os.path.join(folder, mesh_name)
     if not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
+
+    #Collect paths for saving
     path_mesh = os.path.join(path, 'mesh.xdmf')
     path_img = os.path.join(path, 'img.svg')
     path_metadata = os.path.join(path, 'metadata.json')
+
+    #Save mesh, image and metadata
     mesh.write(path_mesh)
     meshio.svg.write(path_img, mesh, float_fmt=".3f", stroke_width="0.1")
     with open(path_metadata, 'w') as f:
         json.dump(metadata, f)
 
-def print_object(obj: object):
-    for attr_name, attr_value in vars(obj).items():
-        print(attr_name, attr_value)
 
 #tri = create_equi_tri([0.33, 0.2], 0.05)
 #tri = squish_object(tri, 1.0, 1.0)
 #rect = rotate_object(create_rect([0.33, 0.2], 0.05, 0.1),45)
-circ = create_ellipse([0.33, 0.2], 0.05,0.05)
-mesh, metadata = create_mesh(objects=[circ])
+#circ = create_ellipse([0.33, 0.2], 0.05,0.05)
+#mesh, metadata = create_mesh(objects=[circ])
 #save_mesh(mesh, metadata, 'test', 'meshes')
