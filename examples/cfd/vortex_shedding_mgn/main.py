@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument('--ckp', type=int, help='Number of checkpoint to load. If none is set, the latest is taken. -1 any checkpoints are ignored.')
     parser.add_argument('--epochs', type=int, default=C.epochs,help='Number of epochs for training.')
     parser.add_argument('--hidden', type=int, default=C.hidden_dim, help='Hidden dim size for edge/node processor/encoder/decoder.')
-    parser.add_argument('--num_samples', type=int, default=C.num_training_samples, help='Number of different simulation used in training.')
+    parser.add_argument('--num_samples', type=int, default=C.num_training_samples, help='Number of different simulations used in training.')
     parser.add_argument('--num_time_steps', type=int, default=C.num_training_time_steps, help='Number of time steps per simulation in training.')
     parser.add_argument('--first_step', type=int, default=C.first_step, help='Simulation time step to start from.')
     parser.add_argument('--num_inf_samples', type=int, default=C.num_test_samples, help='Number of different simulations used for inference.')

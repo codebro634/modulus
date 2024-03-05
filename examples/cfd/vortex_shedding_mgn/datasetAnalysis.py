@@ -5,6 +5,8 @@ from modulus.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
 
 """
     Helper script to analyze a vortex shedding dataset at a specific time step.
+    Furthermore, the script calculates the min/average/max inflow/circle center/radius of the entire dataset. 
+    Assumes that there is exactly 1 circle-object in the dataset.
 """
 
 TOL = 0.025
@@ -13,7 +15,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--graph_num", type=int, default=0, help="Number of simulation inside dataset to analyze.")
 parser.add_argument("--time_step", type=int, default=0, help="Number of time step to analyze.")
 parser.add_argument('--dataset', type=str, default = "raw_dataset/cylinder_flow/cylinder_flow/", help='Path to dataset.')
-parser.add_argument('--split', type=str, default = "test", help='Which split of the dataset to analyze.')
+parser.add_argument('--split', type=str, default = "train", help='Which split of the dataset to analyze.')
 args = parser.parse_args()
 
 graph_num = args.graph_num
@@ -47,10 +49,10 @@ def average_object_stats():
         object_radii.append(object_centers_x[-1] - np.min(object_points_x))
 
     print(f"---------- Dataset average of {num} graphs ----------")
-    print(f"Inflow mean: {np.mean(inflows)}, std: {np.std(inflows)}")
-    print(f"Object center x mean: {np.mean(object_centers_x)}, std: {np.std(object_centers_x)}")
-    print(f"Object center y mean: {np.mean(object_centers_y)}, std: {np.std(object_centers_y)}")
-    print(f"Object radius mean: {np.mean(object_radii)}, std: {np.std(object_radii)}")
+    print(f"Inflow mean: {np.mean(inflows)}, std: {np.std(inflows)}, max: {np.max(inflows)}, min: {np.min(inflows)}")
+    print(f"Object center x mean: {np.mean(object_centers_x)}, std: {np.std(object_centers_x)}, max: {np.max(object_centers_x)}, min: {np.min(object_centers_x)}")
+    print(f"Object center y mean: {np.mean(object_centers_y)}, std: {np.std(object_centers_y)}, max: {np.max(object_centers_y)}, min: {np.min(object_centers_y)}")
+    print(f"Object radius mean: {np.mean(object_radii)}, std: {np.std(object_radii)}, max: {np.max(object_radii)}, min: {np.min(object_radii)}")
 
 itr = VortexSheddingDataset.get_dataset_iterator(dataset, split)
 for _ in range(graph_num+1):
