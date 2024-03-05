@@ -108,7 +108,7 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
         save_mesh(mesh[0],mesh[1], f"mesh{i+1}", f"meshes/{name}")
 
 
-#mixed_mesh_set(args.two_obj, args.circs, args.tris, args.quads, args.stretch, args.rotate, args.name)
+mixed_mesh_set(args.two_obj, args.circs, args.tris, args.quads, args.stretch, args.rotate, args.name)
 
 
 # standard_cylinder_mesh_set()
