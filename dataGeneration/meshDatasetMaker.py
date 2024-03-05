@@ -88,7 +88,6 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
         objects.append(rect) if quads else None
 
         idx = np.random.randint(len(objects))
-        print(idx)
         return objects[idx]
 
     #Generate meshes
@@ -109,12 +108,12 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
         save_mesh(mesh[0],mesh[1], f"mesh{i+1}", f"meshes/{name}")
 
 
-mixed_mesh_set(args.two_obj, args.circs, args.tris, args.quads, args.stretch, args.rotate, args.name)
+#mixed_mesh_set(args.two_obj, args.circs, args.tris, args.quads, args.stretch, args.rotate, args.name)
 
 
-#standard_cylinder_mesh_set()
-#mixed_mesh_set(True,True,False,False,False,False,"2cylinders")
-#mixed_mesh_set(False,True,True,True,False,True,"cylinder_tri_quad")
-#mixed_mesh_set(False,True,False,False,True,False,"cylinder_stretch")
-#mixed_mesh_set(True,True,True,True,True,True,"mixed_all")
+# standard_cylinder_mesh_set()
+# mixed_mesh_set(True,True,False,False,False,False,"2cylinders")
+# mixed_mesh_set(False,True,True,True,False,True,"cylinder_tri_quad")
+# mixed_mesh_set(False,True,False,False,True,False,"cylinder_stretch")
+# mixed_mesh_set(True,True,True,True,True,True,"mixed_all")
 
