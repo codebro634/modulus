@@ -251,7 +251,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         print(f"Duration: {round(time.time() -  start,3)}s",flush=True)
     
     #Create animation
-    if args.p:
+    if args.p and sim == 0:
         duration = (num_steps // num_imgs) * dt / 4 #Divided by 4 to have a bit of slow-motion
         with imageio.get_writer(os.path.join(plot_path,'velocity.gif'), mode='I', duration=duration) as writer:
             for image in image_v_locs:
