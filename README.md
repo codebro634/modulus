@@ -30,3 +30,27 @@ python examples/cfd/vortex_sheddin_mgn/main.py --exp_name <str> --data_dir <str>
 - `eval`: If set, the MGN is trained. If neither train nor eval is set, nothing happens
 - `verbose`: If set, verbosity is activated
 - `inter_eval`: If set, a very small-scale evaluation is performed after every epoch on the test_tiny split
+
+# Generate Meshes
+
+```
+python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--width <float> --height <float> --ox <float> --oy <float> --osize <float> --inflow_peak_mean <float> --inflow_peak_max_deviation <float> --two_obj --rotate --stretch --circs --tris --quads]
+```
+- `name`: Name of the mesh dataset. The generated meshes are saved into meshes/`name`
+- `num_meshes`: Number of meshes to generate
+
+### Optional parameters
+- `width`: Width of the channel
+- `height`: Height of the channel
+- `ox`: Mean of object's mid point's x-coordinate
+- `oy`: Mean of object's mid point's y-coordinate
+- `osize`: Mean object size (e.g. radius for circles)
+- `inflow_peak_mean`:  Mean of the inflow peak
+- `inflow_peak_max_derivation`: Inflow peak is sampled from uniform[inflow_peak_mean-inflow_peak_max_derivation,inflow_peak_mean+inflow_peak_max_derivation]
+- `two_obj`: If set, there is a 50% chance a second object is added
+- `rotate`: If set, the object(s) get randomly rotated
+- `stretch`: If set, the object(s) get randomly stretched/squeezed in the x/y-direction
+- `circs`: If set, circles are part of the possible objects that can be generated
+- `tris`: If set, triangles are part of the possible objects that can be generated
+- `quads`: If set, squares are part of the possible objects that can be generated
+
