@@ -174,13 +174,11 @@ def train(C: Constants):
     if C.verbose:
         print("Start training", flush=True)
     for epoch in range(trainer.epoch_init, C.epochs):
-        print(trainer.scheduler.get_lr())
         for i, graph in enumerate(trainer.dataloader):
-            loss = 0
-            # loss = trainer.train(graph)
-            # if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or (i % 1000 == 0 and i < 10000) or i % 10000 == 0:
-            #     if C.verbose:
-            #         print(f"Epoch {epoch} | Graphs processed:{i}", flush=True)
+            loss = trainer.train(graph)
+            if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or (i % 1000 == 0 and i < 10000) or i % 10000 == 0:
+                if C.verbose:
+                    print(f"Epoch {epoch} | Graphs processed:{i}", flush=True)
 
         #Log epoch info
         log_string = f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
