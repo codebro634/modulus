@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch, dgl
 from dgl.dataloading import GraphDataLoader
 import torch
 import matplotlib.pyplot as plt
@@ -21,12 +20,13 @@ from matplotlib import animation
 from matplotlib import tri as mtri
 import os
 from matplotlib.patches import Rectangle
-
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from modulus.models.meshgraphnet import MeshGraphNet
 from modulus.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
 from modulus.launch.utils import load_checkpoint
 from constants import Constants
 from time import time
+import math
 
 """
 MGNRollout manages the inference loop for the MeshGraphNet model.
@@ -265,16 +265,17 @@ class MGNRollout:
         plt.rcParams["image.cmap"] = "inferno"
         self.fig, self.ax = plt.subplots(2, 1, figsize=(16, 9))
 
-        # Set background color to black
-        self.fig.set_facecolor("black")
-        self.ax[0].set_facecolor("black")
-        self.ax[1].set_facecolor("black")
+        # Set background color to white
+        self.fig.set_facecolor("white")
+        self.ax[0].set_facecolor("white")
+        self.ax[1].set_facecolor("white")
 
         # make animations dir
         if not os.path.exists("./animations"):
             os.makedirs("./animations")
 
     def animate(self, num):
+
         num *= self.C.frame_skip
         graph = self.graphs[num]
         y_star = self.pred_i[num].numpy()
@@ -284,12 +285,18 @@ class MGNRollout:
             graph.ndata["mesh_pos"][:, 1].numpy(),
             self.faces[num],
         )
+
+        vmin = np.min([np.min(y_star), np.min(y_exact)])
+        #vmin = math.ceil(abs(vmin)) * ((-1) if vmin < 0 else 1)
+        vmax = np.max([np.max(y_star), np.max(y_exact)])
+        #vmax = math.ceil(abs(vmax)) * ((-1) if vmax < 0 else 1)
+
         self.ax[0].cla()
         self.ax[0].set_aspect("equal")
         self.ax[0].set_axis_off()
         navy_box = Rectangle((0, 0), 1.4, 0.4, facecolor="navy")
         self.ax[0].add_patch(navy_box)  # Add a navy box to the first subplot
-        self.ax[0].tripcolor(triang, y_star, vmin=np.min(y_star), vmax=np.max(y_star))
+        self.ax[0].tripcolor(triang, y_star, vmin=vmin, vmax=vmax)
         self.ax[0].triplot(triang, "ko-", ms=0.5, lw=0.3)
         self.ax[0].set_title("Modulus MeshGraphNet Prediction", color="white")
         self.ax[1].cla()
@@ -297,11 +304,17 @@ class MGNRollout:
         self.ax[1].set_axis_off()
         navy_box = Rectangle((0, 0), 1.4, 0.4, facecolor="navy")
         self.ax[1].add_patch(navy_box)  # Add a navy box to the second subplot
-        self.ax[1].tripcolor(
-            triang, y_exact, vmin=np.min(y_exact), vmax=np.max(y_exact)
-        )
+        self.ax[1].tripcolor(triang, y_exact, vmin=vmin, vmax=vmax)
         self.ax[1].triplot(triang, "ko-", ms=0.5, lw=0.3)
         self.ax[1].set_title("Ground Truth", color="white")
+
+        #Add colorbar
+        sm = plt.cm.ScalarMappable(cmap=plt.rcParams["image.cmap"])
+        sm.set_array([])
+        divider = make_axes_locatable(self.ax[-1])
+        cbar_ax = divider.append_axes("bottom", size="5%", pad=0.5)  # Position the colorbar below the last subplot
+        self.fig.colorbar(sm, cax=cbar_ax, orientation='horizontal')
+        sm.set_clim(vmin, vmax)
 
         # Adjust subplots to minimize empty space
         self.ax[0].set_aspect("auto", adjustable="box")

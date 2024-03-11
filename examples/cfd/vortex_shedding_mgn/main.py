@@ -1,5 +1,6 @@
 import os
 import argparse
+import torch
 from constants import Constants
 from examples.cfd.vortex_shedding_mgn.inference import evaluate_model
 from examples.cfd.vortex_shedding_mgn.train import train
@@ -26,6 +27,9 @@ def set_cwd(start_path='.'):
 
 
 if __name__ == "__main__":
+    if torch.cuda.is_available():
+        x = torch.tensor([1,2,3],device='cuda:0') #Memory hack to grab some initial memory on the GPU to avoid CUDA out of memory
+
     #Change cwd
     set_cwd()
 
@@ -33,7 +37,7 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/test", help='Path to the dataset relative to the folder vortex_shedding_mgn.')
+    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/cylinder_flow", help='Path to the dataset relative to the folder vortex_shedding_mgn.')
     parser.add_argument('--exp_name', default="model", help='Name of the experiment.')
     parser.add_argument('--inter_eval', action='store_true', help='Does tiny intermediate evaluations after each epoch.')
     parser.add_argument('--ckp', type=int, help='Number of checkpoint to load. If none is set, the latest is taken. -1 any checkpoints are ignored.')

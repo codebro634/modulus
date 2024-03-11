@@ -180,7 +180,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     [bc.apply(A2) for bc in bcp]
     
     
-    # Create time series (for use in reaction_system.py)
+    # Create time series
     tut,tpt = os.path.join(results_dir, 'tmp1'), os.path.join(results_dir,'tmp2')
     timeseries_u = TimeSeries(tut)
     timeseries_p = TimeSeries(tpt)
@@ -215,7 +215,7 @@ for sim, mesh_path in enumerate(mesh_paths):
             break
     
         # Plot solution
-        if args.p and n % (num_steps // num_imgs) == 0:
+        if args.p and n % (num_steps // num_imgs) == 0 and sim == 0:
             title=f"velocity{n}"
             plot(u_, title=title)
             plt.savefig(os.path.join(plot_path,title+".png"))

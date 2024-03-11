@@ -62,7 +62,7 @@ def merge_simulation_data(folders, output_folder):
     #Load npy data
     merged_sims = []
     for path in sim_paths:
-        merged_sims += np.load(path, mmap_mode='r')
+        merged_sims = np.concatenate((merged_sims, np.load(path, allow_pickle=True)))
 
     #Save merged data
     os.makedirs(output_folder, exist_ok=True)

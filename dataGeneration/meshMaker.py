@@ -133,7 +133,6 @@ def squish_object(obj: gObject, xstretch: float = 1.0, ystretch: float = 1.0) ->
 
 
 
-
 def create_ellipse(mid, w,h) -> gObject:
     return gObject(shape='ellipse', args={'x0': mid, 'w': w, 'h': h })
 
@@ -145,6 +144,7 @@ def create_equi_tri(mid, r) -> gObject:
     corners = [mid[0] , mid[1] - r], [mid[0] + r*math.sin(a), mid[1] + r*math.cos(a)], [mid[0] - r*math.sin(a), mid[1] + r*math.cos(a)]
     tri = gObject(shape='tri', args={'x0': corners[0], 'x1': corners[1], 'x2': corners[2]})
     return rotate_object(tri, 30)
+
 
 """
     create_mesh creates a triangular mesh with a rectangular domain and with holes defined by the objects in the objects list.
@@ -217,6 +217,6 @@ def save_mesh(mesh: meshio.Mesh, metadata: dict, mesh_name: str, folder: str):
 #tri = create_equi_tri([0.33, 0.2], 0.05)
 #tri = squish_object(tri, 1.0, 1.0)
 #rect = rotate_object(create_rect([0.33, 0.2], 0.05, 0.1),45)
-#circ = create_ellipse([0.33, 0.2], 0.05,0.05)
+#circ = create_ellipse([0.325, 0.2], 0.05,0.05)
 #mesh, metadata = create_mesh(objects=[circ])
 #save_mesh(mesh, metadata, 'test', 'meshes')
