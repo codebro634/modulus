@@ -392,7 +392,7 @@ for sim, mesh_path in enumerate(mesh_paths):
                 past_peak_idx = i
                 break
         next_peaks = np.argwhere(cl[past_peak_idx:] == np.max(cl[past_peak_idx:]))
-        frequency = 1 / (times[max_idx] - times[next_peaks[0] + past_peak_idx])
+        frequency = 1 / (times[next_peaks[0][0] + past_peak_idx] - times[max_idx])
 
         strouhal = frequency * 0.1
         drag_coef = np.max(cd)
