@@ -95,11 +95,11 @@ for sim, mesh_path in enumerate(mesh_paths):
         if inflow_peak in metadata:
             inflow_peak = metadata['inflow_peak']
     else:
-        channel = Rectangle(Point(0, 0), Point(1.6, 0.41))
-        obstacle = Circle(Point(0.33, 0.2), 0.05)
+        channel = Rectangle(Point(0, 0), Point(2.2, 0.41))
+        obstacle = Circle(Point(0.2, 0.2), 0.05)
         domain = channel - obstacle
         mesh = generate_mesh(domain, 64)
-        channel_width = 1.6
+        channel_width = 2.2
         channel_height = 0.41
         obstacle_condition = 'on_boundary && x[0]>0.23 && x[0]<0.43 && x[1]>0.1 && x[1]<0.3'
 
@@ -225,7 +225,8 @@ for sim, mesh_path in enumerate(mesh_paths):
             plot(p_,title=title)
             plt.savefig(os.path.join(plot_path,title+".png"))
             image_p_locs.append(os.path.join(plot_path,title+".png"))
-    
+
+
         # Save nodal values to file
         timeseries_u.store(u_.vector(), t)
         timeseries_p.store(p_.vector(), t)
@@ -328,6 +329,41 @@ for sim, mesh_path in enumerate(mesh_paths):
         sim_data[k] = sim_data[k][(N_save-1)::N_save] #Skip first data points to avoid initial chaos phase
 
     sims_data.append(sim_data)
+
+    #Calculate quantities of interest (for benchmark only)
+    if mesh_path is None:
+        num_points = 128
+        cpoints = [(0.2 + 0.05 * np.cos(2 * np.pi * k / num_points),0.2 + 0.05 * np.sin(2 * np.pi * k / num_points)) for k in range(num_points)]
+
+        normal_vecs = []
+        for k in range(num_points):
+            dx_dk = -0.05 * np.sin(2 * np.pi * k / num_points) * (2 * np.pi / num_points)
+            dy_dk = 0.05 * np.cos(2 * np.pi * k / num_points) * (2 * np.pi / num_points)
+            nx = -dy_dk
+            ny = dx_dk
+            length = np.sqrt(nx ** 2 + ny ** 2)
+            nx /= length
+            ny /= length
+            normal_vecs.append((nx, ny))
+            print(f"Normal vec at {cpoints[k]}: {nx,ny}")
+
+        for t in enumerate(times_v):
+            timeseries_u.retrieve(u_.vector(), t)
+            fd,fl = 0,0
+            for i in range(num_points):
+                normal_vec = normal_vecs[i]
+                vec = nabla_grad(u_)(cpoints[i]) * normal_vec #alternativ dot(nabla_grad(u_),normal_vec)
+                fd += vec[0]
+                fl += vec[1]
+            fd/=num_points
+            fl/=num_points
+
+        cd = 2 * fd / (0.1)
+        cl = 2 * fl / (0.1)
+
+        print(f"fd: {fd}, fl: {fl}")
+        print(f"cd: {cd}, cl: {cl}")
+
     
     #Remove temp files
     os.remove(tut+".h5")

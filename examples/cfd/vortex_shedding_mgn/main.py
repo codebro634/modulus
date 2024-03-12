@@ -37,11 +37,11 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/cylinder_flow", help='Path to the dataset relative to the folder vortex_shedding_mgn.')
+    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/merged", help='Path to the dataset relative to the folder vortex_shedding_mgn.')
     parser.add_argument('--exp_name', default="model", help='Name of the experiment.')
     parser.add_argument('--inter_eval', action='store_true', help='Does tiny intermediate evaluations after each epoch.')
     parser.add_argument('--ckp', type=int, help='Number of checkpoint to load. If none is set, the latest is taken. -1 any checkpoints are ignored.')
-    parser.add_argument('--epochs', type=int, default=C.epochs,help='Number of epochs for training.')
+    parser.add_argument('--epochs', type=int, default=C.epochs, help='Number of epochs for training.')
     parser.add_argument('--hidden', type=int, default=C.hidden_dim, help='Hidden dim size for edge/node processor/encoder/decoder.')
     parser.add_argument('--num_samples', type=int, default=C.num_training_samples, help='Number of different simulations used in training.')
     parser.add_argument('--num_time_steps', type=int, default=C.num_training_time_steps, help='Number of time steps per simulation in training.')

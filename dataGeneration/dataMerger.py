@@ -68,6 +68,9 @@ def merge_simulation_data(folders, output_folder):
     os.makedirs(output_folder, exist_ok=True)
     np.save(os.path.join(output_folder, "merged.npy"), merged_sims)
 
+#out = "../examples/cfd/vortex_shedding_mgn/raw_dataset/cylinder_flow/merged/"
+#folders = ["../examples/cfd/vortex_shedding_mgn/raw_dataset/cylinder_flow/standard_cylinder_test/"]
+#merge_simulation_data(folders, out)
 
 #parser = argparse.ArgumentParser()
 #parser.add_argument("--out",  help="Output folder.")
