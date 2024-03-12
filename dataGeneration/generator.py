@@ -384,7 +384,8 @@ for sim, mesh_path in enumerate(mesh_paths):
         cd = np.array(cd)
         cl = np.array(cl)
         max_cl_idx = np.argmax(cl)
-        max_cl_time = times[max_cl_idx]
+        print(max_cl_idx)
+        max_cl_time = np.array(times)[max_cl_idx]
         frequency = 1 / (max_cl_time[1] - max_cl_time[0])
 
         strouhal = frequency * 0.1
