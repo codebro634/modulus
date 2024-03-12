@@ -351,7 +351,8 @@ for sim, mesh_path in enumerate(mesh_paths):
             fd,fl = 0,0
             for i in range(num_points):
                 normal_vec = normal_vecs[i]
-                vec = dolfin.project(nabla_grad(u_))(cpoints[i]) * normal_vec #alternativ dot(nabla_grad(u_),normal_vec)
+                vec = (nabla_grad(u_) * normal_vec)(cpoints[i])
+                #vec = dolfin.project(nabla_grad(u_))(cpoints[i]) * normal_vec #alternativ dot(nabla_grad(u_),normal_vec)
                 fd += vec[0]
                 fl += vec[1]
 
