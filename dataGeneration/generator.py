@@ -7,6 +7,7 @@ import os
 import imageio
 import argparse
 import json
+import math
 
 """
     Script for flow simulation using FEniCS and the Incremental Pressure Correction Scheme (IPCS). 
@@ -332,8 +333,10 @@ for sim, mesh_path in enumerate(mesh_paths):
 
     #Calculate quantities of interest (for benchmark only)
     if mesh_path is None:
-        num_points = 128
-        cpoints = [(0.2 + 0.05 * np.cos(2 * np.pi * k / num_points),0.2 + 0.05 * np.sin(2 * np.pi * k / num_points)) for k in range(num_points)]
+        num_points = 64
+        cpoints = [(0.2 + 0.05 * np.cos(2 * np.pi * k / num_points), 0.2 + 0.05 * np.sin(2 * np.pi * k / num_points))
+                   for k in range(num_points)]
+        t_thrs = 25.0
 
         normal_vecs = []
         for k in range(num_points):
@@ -346,25 +349,50 @@ for sim, mesh_path in enumerate(mesh_paths):
             ny /= length
             normal_vecs.append((nx, ny))
 
-        for j,t in enumerate(times_v):
-            timeseries_u.retrieve(u_.vector(), t)
-            fd,fl = 0,0
+        dp,cd,cl = [], [], []
+        times = []
+        for j in range(len(times_v)):
+            if j % N_save != 0 and times_v[j] < t_thrs:
+                continue
+            assert times_v[j] == times_p[j]
+
+            times.append(times_v[j])
+            timeseries_u.retrieve(u_.vector(), times_v[j])
+            timeseries_p.retrieve(p_.vector(), times_p[j])
+
+            fd, fl = 0, 0
             for i in range(num_points):
                 normal_vec = normal_vecs[i]
-                vec = dot(nabla_grad(u_), normal_vec)(cpoints[i])
-                #vec = dolfin.project(nabla_grad(u_))(cpoints[i]) * normal_vec #alternativ dot(nabla_grad(u_),normal_vec)
+                sigma = mu * (nabla_grad(u_) + grad(u_)) - p_ * Identity(2)
+                vec = dolfin.project(dot(sigma, as_vector(normal_vec)))(cpoints[i])
                 fd += vec[0]
                 fl += vec[1]
 
-            fd/=num_points
-            fl/=num_points
+            fd /= num_points
+            fl /= num_points
+            cd = 2 * fd / (0.1)
+            cl = 2 * fl / (0.1)
 
+            timeseries_p.retrieve(p_.vector(),t)
+            deltaP = p_((0.15,0.2)) - p_(0.25,0.2)
 
-        cd = 2 * fd / (0.1)
-        cl = 2 * fl / (0.1)
+            dp.append(deltaP)
+            cd.append(cd)
+            cl.append(cl)
 
-        print(f"fd: {fd}, fl: {fl}")
-        print(f"cd: {cd}, cl: {cl}")
+        dp = np.array(dp)
+        cd = np.array(cd)
+        cl = np.array(cl)
+        max_cl_idx = np.argmax(cl)
+        max_cl_time = times[max_cl_idx]
+        frequency = 1 / (max_cl_time[1] - max_cl_time[0])
+
+        strouhal = frequency * 0.1
+        drag_coef = np.max(cd)
+        lift_coef = np.max(cl)
+        max_delta_p = np.max(dp)
+
+        print(f"Strouhal number: {strouhal}, Drag coefficient: {drag_coef}, Lift coefficient: {lift_coef}, Max delta P: {max_delta_p}",flush=True)
 
     
     #Remove temp files
