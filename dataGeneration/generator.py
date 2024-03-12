@@ -333,6 +333,10 @@ for sim, mesh_path in enumerate(mesh_paths):
 
     #Calculate quantities of interest (for benchmark only)
     if mesh_path is None:
+
+        if args.vlevel > 0:
+            print("Calculating quantities of interest",flush=True)
+
         num_points = 64
         cpoints = [(0.2 + 0.05 * np.cos(2 * np.pi * k / num_points), 0.2 + 0.05 * np.sin(2 * np.pi * k / num_points))
                    for k in range(num_points)]
@@ -355,6 +359,9 @@ for sim, mesh_path in enumerate(mesh_paths):
             if j % N_save != 0 and times_v[j] < t_thrs:
                 continue
             assert times_v[j] == times_p[j]
+
+            if (args.vlevel > 0 and j % 10 == 0) or args.vlevel > 1:
+                print(f"Progress: {j/N_save}/{len(times_v)//N_save}", flush=True)
 
             times.append(times_v[j])
             timeseries_u.retrieve(u_.vector(), times_v[j])
