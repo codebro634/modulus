@@ -370,15 +370,15 @@ for sim, mesh_path in enumerate(mesh_paths):
 
             fd /= num_points
             fl /= num_points
-            cd = 2 * fd / (0.1)
-            cl = 2 * fl / (0.1)
+            cd_ = 2 * fd / (0.1)
+            cl_ = 2 * fl / (0.1)
 
             timeseries_p.retrieve(p_.vector(),t)
             deltaP = p_((0.15,0.2)) - p_(0.25,0.2)
 
             dp.append(deltaP)
-            cd.append(cd)
-            cl.append(cl)
+            cd.append(cd_)
+            cl.append(cl_)
 
         dp = np.array(dp)
         cd = np.array(cd)
