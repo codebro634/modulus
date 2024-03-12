@@ -383,16 +383,23 @@ for sim, mesh_path in enumerate(mesh_paths):
         dp = np.array(dp)
         cd = np.array(cd)
         cl = np.array(cl)
-        max_cl_idx = np.argwhere(cl == np.max(cl))
-        max_cl_time = np.array(times)[max_cl_idx]
-        frequency = 1 / (max_cl_time[1] - max_cl_time[0])
+
+        #Get frequency of lift coefficient peaks
+        max_idx = np.argmax(cl)
+        past_peak_idx = None
+        for i in range(max_idx, len(cl)):
+            if times[i] - times[max_idx] >= 0.2:
+                past_peak_idx = i
+                break
+        next_peaks = np.argwhere(cl[past_peak_idx:] == np.max(cl[past_peak_idx:]))
+        frequency = 1 / (times[max_idx] - times[next_peaks[0] + past_peak_idx])
 
         strouhal = frequency * 0.1
         drag_coef = np.max(cd)
         lift_coef = np.max(cl)
         max_delta_p = np.max(dp)
 
-        print(f"Strouhal number: {strouhal}, Drag coefficient: {drag_coef}, Lift coefficient: {lift_coef}, Max delta P: {max_delta_p}",flush=True)
+        print(f"Frequency: {frequency} Strouhal number: {strouhal}, Drag coefficient: {drag_coef}, Lift coefficient: {lift_coef}, Max delta P: {max_delta_p}",flush=True)
 
     
     #Remove temp files
