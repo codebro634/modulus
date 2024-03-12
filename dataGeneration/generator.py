@@ -349,14 +349,19 @@ for sim, mesh_path in enumerate(mesh_paths):
 
         for t in enumerate(times_v):
             timeseries_u.retrieve(u_.vector(), t)
-            fd,fl = 0,0
+            fd1,fl1,fd2,fl2 = 0,0,0,0
             for i in range(num_points):
                 normal_vec = normal_vecs[i]
-                vec = nabla_grad(u_)(cpoints[i]) * normal_vec #alternativ dot(nabla_grad(u_),normal_vec)
-                fd += vec[0]
-                fl += vec[1]
-            fd/=num_points
-            fl/=num_points
+                vec1 = dolfin.project(nabla_grad(u_))(cpoints[i]) * normal_vec #alternativ dot(nabla_grad(u_),normal_vec)
+                fd1 += vec[0]
+                fl1 += vec[1]
+                vec2 = dolfin.project(grad(u_))(cpoints[i]) * normal_vec
+                fd2 += vec[0]
+                fl2 += vec[1]
+            fd1/=num_points
+            fl1/=num_points
+            fd2/=num_points
+            fl2/=num_points
 
         cd = 2 * fd / (0.1)
         cl = 2 * fl / (0.1)
