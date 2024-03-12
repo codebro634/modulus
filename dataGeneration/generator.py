@@ -383,8 +383,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         dp = np.array(dp)
         cd = np.array(cd)
         cl = np.array(cl)
-        max_cl_idx = np.argmax(cl)
-        print(max_cl_idx)
+        max_cl_idx = np.argwhere(cl == np.max(cl))
         max_cl_time = np.array(times)[max_cl_idx]
         frequency = 1 / (max_cl_time[1] - max_cl_time[0])
 
