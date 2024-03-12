@@ -339,29 +339,25 @@ for sim, mesh_path in enumerate(mesh_paths):
         for k in range(num_points):
             dx_dk = -0.05 * np.sin(2 * np.pi * k / num_points) * (2 * np.pi / num_points)
             dy_dk = 0.05 * np.cos(2 * np.pi * k / num_points) * (2 * np.pi / num_points)
-            nx = -dy_dk
-            ny = dx_dk
+            nx = dy_dk
+            ny = -dx_dk
             length = np.sqrt(nx ** 2 + ny ** 2)
             nx /= length
             ny /= length
             normal_vecs.append((nx, ny))
-            print(f"Normal vec at {cpoints[k]}: {nx,ny}")
 
-        for t in enumerate(times_v):
+        for j,t in enumerate(times_v):
             timeseries_u.retrieve(u_.vector(), t)
-            fd1,fl1,fd2,fl2 = 0,0,0,0
+            fd,fl = 0,0
             for i in range(num_points):
                 normal_vec = normal_vecs[i]
-                vec1 = dolfin.project(nabla_grad(u_))(cpoints[i]) * normal_vec #alternativ dot(nabla_grad(u_),normal_vec)
-                fd1 += vec[0]
-                fl1 += vec[1]
-                vec2 = dolfin.project(grad(u_))(cpoints[i]) * normal_vec
-                fd2 += vec[0]
-                fl2 += vec[1]
-            fd1/=num_points
-            fl1/=num_points
-            fd2/=num_points
-            fl2/=num_points
+                vec = dolfin.project(nabla_grad(u_))(cpoints[i]) * normal_vec #alternativ dot(nabla_grad(u_),normal_vec)
+                fd += vec[0]
+                fl += vec[1]
+
+            fd/=num_points
+            fl/=num_points
+
 
         cd = 2 * fd / (0.1)
         cl = 2 * fl / (0.1)
