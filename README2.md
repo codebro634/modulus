@@ -57,7 +57,7 @@ python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--wid
 # Simulate flow on a mesh
 
 ```
-python dataGeneration/generator.py --dir <str> --mesh <str> [--steps <int> --dt <float> --saveN <int> --mesh_range <tuple(int,int)> --vlevel <int> --cleanup_dir <str> --p]
+python dataGeneration/generator.py --dir <str> --mesh <str> [--steps <int> --dt <float> --saveN <int> --mesh_range <tuple(int,int)> --vlevel <int> --cleanup_dir <str> --num_frames <int> --dont_save]
 ```
 - `dir`: Name of the dir to save the simulation results into.
 - `mesh`: Path to the mesh, the simulation is supposed to be run on. Can also be a directory. In that case, all meshes within all subfolders of that directory are simulated.
@@ -70,7 +70,7 @@ python dataGeneration/generator.py --dir <str> --mesh <str> [--steps <int> --dt 
 - `vlevel`: Verbosity level. Min:0, Max:2. Default:1
 - `cleanup_dir`: If not None, then instead of using `mesh`, the directory  `cleanup_dir` and its subdirectories are searched for files named 'failed_meshes.txt'. These files are assumed to contain paths to meshes. All meshes found this way are used for simulation. Default: None
 - `num_frames`: If > 0, save animation of simulation as gif with num_frames frames. Default: 0
-
+- `dont_save`: If set, the simulation data is discarded and not saved (could be used if only the animation is needed)
   
 # Analyze dataset (Used for reverse-engineering parameters)
 

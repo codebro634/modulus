@@ -18,7 +18,7 @@ import math
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--num_frames",type=int, default=0, help="If > 0, save animation of simulation as gif with num_frames frames.")
-parser.add_argument('--save_data', action='store_true', help='If set, the simulation results are saved into a numpy file.')
+parser.add_argument('--dont_save', action='store_true', help='If set, the simulation results are NOT saved and simply discarded.')
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt", type=float, default=0.0005, help="Delta t.")
 parser.add_argument("--saveN", type=int, default=20, help="Every how many steps to save.")
@@ -271,7 +271,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     
     
     """Extract data in numpy format from the simulation"""
-    if args.save_data:
+    if not args.dont_save:
         n = mesh.num_vertices()
         sim_data = dict()
 
@@ -411,7 +411,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     os.remove(tpt+".h5")
 
 #Save all simulations into a single file
-if args.save_data:
+if not args.dont_save:
     np.save(results_dir+"/simdata.npy",sims_data)
     np.savetxt(results_dir+"/failed_meshes.txt",failed_meshes, delimiter=',', fmt="%s")
 
