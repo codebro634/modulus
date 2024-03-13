@@ -332,6 +332,9 @@ for sim, mesh_path in enumerate(mesh_paths):
     #Calculate quantities of interest (for benchmark only)
     if mesh_path is None:
 
+        times_v = timeseries_u.vector_times()
+        times_p = timeseries_p.vector_times()
+
         if args.vlevel > 0:
             print("Calculating quantities of interest",flush=True)
 
