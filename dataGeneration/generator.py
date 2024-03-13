@@ -18,6 +18,7 @@ import math
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--num_frames",type=int, default=0, help="If > 0, save animation of simulation as gif with num_frames frames.")
+parser.add_argument('--save_data', action='store_true', help='If set, the simulation results are saved into a numpy file.')
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt", type=float, default=0.0005, help="Delta t.")
 parser.add_argument("--saveN", type=int, default=20, help="Every how many steps to save.")
@@ -30,7 +31,6 @@ args = parser.parse_args()
 
 results_dir = args.dir
 os.makedirs(results_dir, exist_ok=True)
-
 
 mesh_paths = []
 # If necessary, add meshes to resimulate to list
@@ -271,63 +271,63 @@ for sim, mesh_path in enumerate(mesh_paths):
     
     
     """Extract data in numpy format from the simulation"""
+    if args.save_data:
+        n = mesh.num_vertices()
+        sim_data = dict()
 
-    n = mesh.num_vertices()
-    sim_data = dict()
+        #Extract velocities
+        velocity = np.zeros(shape=(num_steps, n, 2),dtype=np.float32)
+        times_v = timeseries_u.vector_times()
+        for i,t in enumerate(times_v):
+            timeseries_u.retrieve(u_.vector(),t)
+            x = u_.compute_vertex_values(mesh) #The same as calling u_ at the coordinates of each vertex
+            velo_t = np.concatenate( (x[0:n,np.newaxis],x[n:,np.newaxis]), axis=-1)
+            velocity[i] = velo_t
+        sim_data['velocity'] = velocity
 
-    #Extract velocities
-    velocity = np.zeros(shape=(num_steps, n, 2),dtype=np.float32)
-    times_v = timeseries_u.vector_times()
-    for i,t in enumerate(times_v):
-        timeseries_u.retrieve(u_.vector(),t)
-        x = u_.compute_vertex_values(mesh) #The same as calling u_ at the coordinates of each vertex
-        velo_t = np.concatenate( (x[0:n,np.newaxis],x[n:,np.newaxis]), axis=-1)
-        velocity[i] = velo_t
-    sim_data['velocity'] = velocity
+        #Extract pressure values
+        pressure = np.zeros(shape=(num_steps,n,1),dtype=np.float32)
+        times_p = timeseries_p.vector_times()
+        for i,t in enumerate(times_p):
+            timeseries_p.retrieve(p_.vector(),t)
+            x = p_.compute_vertex_values(mesh)
+            pressure[i] = x[:,np.newaxis]
+        sim_data['pressure'] = pressure
 
-    #Extract pressure values
-    pressure = np.zeros(shape=(num_steps,n,1),dtype=np.float32)
-    times_p = timeseries_p.vector_times()
-    for i,t in enumerate(times_p):
-        timeseries_p.retrieve(p_.vector(),t)
-        x = p_.compute_vertex_values(mesh)
-        pressure[i] = x[:,np.newaxis]
-    sim_data['pressure'] = pressure
+        #Extract mesh graph data
+        sim_data['cells'] = np.repeat(np.array(list(mesh.cells()),dtype=np.int32)[np.newaxis,...],num_steps,axis=0)
+        sim_data['mesh_pos'] = np.repeat(np.array(list(mesh.coordinates()),dtype=np.float32)[np.newaxis,...],num_steps,axis=0)
 
-    #Extract mesh graph data
-    sim_data['cells'] = np.repeat(np.array(list(mesh.cells()),dtype=np.int32)[np.newaxis,...],num_steps,axis=0)
-    sim_data['mesh_pos'] = np.repeat(np.array(list(mesh.coordinates()),dtype=np.float32)[np.newaxis,...],num_steps,axis=0)
-    
 
-    def get_vertices_with_cond(mesh, condition): #From https://fenicsproject.org/qa/2989/vertex-on-mesh-boundary/
-        V = FunctionSpace(mesh, 'CG', 1)
-        bc = DirichletBC(V, 1, condition)
-        u = Function(V)
-        bc.apply(u.vector())
-        d2v = dof_to_vertex_map(V)
-        vertices_on_boundary = d2v[u.vector() == 1.0]
-        return vertices_on_boundary
+        def get_vertices_with_cond(mesh, condition): #From https://fenicsproject.org/qa/2989/vertex-on-mesh-boundary/
+            V = FunctionSpace(mesh, 'CG', 1)
+            bc = DirichletBC(V, 1, condition)
+            u = Function(V)
+            bc.apply(u.vector())
+            d2v = dof_to_vertex_map(V)
+            vertices_on_boundary = d2v[u.vector() == 1.0]
+            return vertices_on_boundary
 
-    #Extract node types
-    vertex_types = []
-    v_inflow, v_outflow, v_walls, v_cylinder  = get_vertices_with_cond(mesh,inflow), get_vertices_with_cond(mesh,outflow), get_vertices_with_cond(mesh,walls), get_vertices_with_cond(mesh, obstacle)
-    for v in range(mesh.num_vertices()):
-        if v in v_inflow and not v in v_walls: #As in deepminds dataset, the four corners are considered boundaries
-            vertex_types.append(4)
-        elif v in v_outflow and not v in v_walls:
-            vertex_types.append(5)
-        elif v in v_walls or v in v_cylinder:
-            vertex_types.append(6)
-        else:
-            vertex_types.append(0)
-            
-    sim_data['node_type'] = np.repeat(np.array(vertex_types,dtype=np.int32)[np.newaxis,:,np.newaxis],num_steps,axis=0)
+        #Extract node types
+        vertex_types = []
+        v_inflow, v_outflow, v_walls, v_cylinder  = get_vertices_with_cond(mesh,inflow), get_vertices_with_cond(mesh,outflow), get_vertices_with_cond(mesh,walls), get_vertices_with_cond(mesh, obstacle)
+        for v in range(mesh.num_vertices()):
+            if v in v_inflow and not v in v_walls: #As in deepminds dataset, the four corners are considered boundaries
+                vertex_types.append(4)
+            elif v in v_outflow and not v in v_walls:
+                vertex_types.append(5)
+            elif v in v_walls or v in v_cylinder:
+                vertex_types.append(6)
+            else:
+                vertex_types.append(0)
 
-    #Only save every N-th time step and discard the rest
-    for k, v in sim_data.items():
-        sim_data[k] = sim_data[k][(N_save-1)::N_save] #Skip first data points to avoid initial chaos phase
+        sim_data['node_type'] = np.repeat(np.array(vertex_types,dtype=np.int32)[np.newaxis,:,np.newaxis],num_steps,axis=0)
 
-    sims_data.append(sim_data)
+        #Only save every N-th time step and discard the rest
+        for k, v in sim_data.items():
+            sim_data[k] = sim_data[k][(N_save-1)::N_save] #Skip first data points to avoid initial chaos phase
+
+        sims_data.append(sim_data)
 
     #Calculate quantities of interest (for benchmark only)
     if mesh_path is None:
@@ -411,7 +411,8 @@ for sim, mesh_path in enumerate(mesh_paths):
     os.remove(tpt+".h5")
 
 #Save all simulations into a single file
-np.save(results_dir+"/simdata.npy",sims_data)
-np.savetxt(results_dir+"/failed_meshes.txt",failed_meshes, delimiter=',', fmt="%s")
+if args.save_data:
+    np.save(results_dir+"/simdata.npy",sims_data)
+    np.savetxt(results_dir+"/failed_meshes.txt",failed_meshes, delimiter=',', fmt="%s")
 
 
