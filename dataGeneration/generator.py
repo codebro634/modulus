@@ -17,6 +17,7 @@ import math
 #TODO check if this code works for multiple obstacles
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--num_frames",type=int, default=0, help="If > 0, save animation of simulation as gif with num_frames frames.")
 parser.add_argument("--p", action="store_true", help="If set, save gif of the simulation.")
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt", type=float, default=0.0005, help="Delta t.")
@@ -59,12 +60,10 @@ if args.mesh_range is not None:
     mesh_paths = mesh_paths[int(start):int(end)]
 
 sims_data, failed_meshes = [], [] #One entry for each simulation
+num_frames = args.num_frames
 for sim, mesh_path in enumerate(mesh_paths):
 
-    #Plotting params
-    num_imgs = 100
-    
-    if args.p and sim==0:
+    if num_frames > 0 and sim==0:
         plot_path = os.path.join(results_dir,"animation")
         if not os.path.exists(plot_path):
             os.makedirs(plot_path,exist_ok=True)
@@ -216,7 +215,7 @@ for sim, mesh_path in enumerate(mesh_paths):
             break
     
         # Plot solution
-        if args.p and n % (num_steps // num_imgs) == 0 and sim == 0:
+        if num_frames > 0 and n % max(num_steps // num_frames, 1) == 0 and sim == 0:
             title=f"velocity{n}"
             plot(u_, title=title)
             plt.savefig(os.path.join(plot_path,title+".png"))
@@ -253,8 +252,8 @@ for sim, mesh_path in enumerate(mesh_paths):
         print(f"Duration: {round(time.time() -  start,3)}s",flush=True)
     
     #Create animation
-    if args.p and sim == 0:
-        duration = (num_steps // num_imgs) * dt / 4 #Divided by 4 to have a bit of slow-motion
+    if num_frames > 0 and sim == 0:
+        duration = (num_steps // num_frames) * dt / 4 #Divided by 4 to have a bit of slow-motion
         with imageio.get_writer(os.path.join(plot_path,'velocity.gif'), mode='I', duration=duration) as writer:
             for image in image_v_locs:
                 img = imageio.imread(image)
@@ -356,7 +355,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         dp,cd,cl = [], [], []
         times = []
         for j in range(len(times_v)):
-            if j % N_save != 0 and times_v[j] < t_thrs:
+            if j % N_save != 0 or times_v[j] < t_thrs:
                 continue
             assert times_v[j] == times_p[j]
 
@@ -380,7 +379,6 @@ for sim, mesh_path in enumerate(mesh_paths):
             cd_ = 2 * fd / (0.1)
             cl_ = 2 * fl / (0.1)
 
-            timeseries_p.retrieve(p_.vector(),t)
             deltaP = p_((0.15,0.2)) - p_(0.25,0.2)
 
             dp.append(deltaP)
