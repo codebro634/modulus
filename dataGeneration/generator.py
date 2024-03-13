@@ -18,7 +18,6 @@ import math
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--num_frames",type=int, default=0, help="If > 0, save animation of simulation as gif with num_frames frames.")
-parser.add_argument("--p", action="store_true", help="If set, save gif of the simulation.")
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt", type=float, default=0.0005, help="Delta t.")
 parser.add_argument("--saveN", type=int, default=20, help="Every how many steps to save.")
