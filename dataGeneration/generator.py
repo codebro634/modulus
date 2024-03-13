@@ -60,6 +60,7 @@ if args.mesh_range is not None:
 
 sims_data, failed_meshes = [], [] #One entry for each simulation
 num_frames = args.num_frames
+t_thrs = 25.0 #Only needed when quantities of interest are calculated
 for sim, mesh_path in enumerate(mesh_paths):
 
     if num_frames > 0 and sim==0:
@@ -78,7 +79,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     #Default PDE parameters
     mu = 0.001         # dynamic viscosity
     rho = 1            # density
-    inflow_peak = 1.25 #Can be overwritten by if it is specified in Mesh's metadata
+    inflow_peak = 1.5 #Can be overwritten by if it is specified in Mesh's metadata
     
     # Create/Load mesh
     if mesh_path is not None:
@@ -231,8 +232,9 @@ for sim, mesh_path in enumerate(mesh_paths):
         timeseries_p.store(p_.vector(), t)
     
         # Update previous solution
-        u_n.assign(u_)
-        p_n.assign(p_)
+        if (not args.dont_save) or (t > t_thrs and mesh_path is None): #Second condition applies only for benchmark
+            u_n.assign(u_)
+            p_n.assign(p_)
     
         # Print progress
         if args.vlevel == 2:
@@ -341,7 +343,6 @@ for sim, mesh_path in enumerate(mesh_paths):
         num_points = 64
         cpoints = [(0.2 + 0.05 * np.cos(2 * np.pi * k / num_points), 0.2 + 0.05 * np.sin(2 * np.pi * k / num_points))
                    for k in range(num_points)]
-        t_thrs = 25.0
 
         normal_vecs = []
         for k in range(num_points):
@@ -376,10 +377,10 @@ for sim, mesh_path in enumerate(mesh_paths):
                 fd += vec[0]
                 fl += vec[1]
 
-            fd /= num_points
-            fl /= num_points
-            cd_ = 2 * fd / (0.1)
-            cl_ = 2 * fl / (0.1)
+            fd *= (0.1*math.pi)/num_points
+            fl *= (0.1*math.pi)/num_points
+            cd_ = 2 * fd / 0.1
+            cl_ = 2 * fl / 0.1
 
             deltaP = p_((0.15,0.2)) - p_(0.25,0.2)
 
