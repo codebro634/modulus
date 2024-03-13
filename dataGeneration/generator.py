@@ -102,7 +102,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         mesh = generate_mesh(domain, 64)
         channel_width = 2.2
         channel_height = 0.41
-        obstacle_condition = 'on_boundary && x[0]>0.23 && x[0]<0.43 && x[1]>0.1 && x[1]<0.3'
+        obstacle_condition = 'on_boundary && x[0]>0.1 && x[0]<0.3 && x[1]>0.1 && x[1]<0.3'
 
     if args.vlevel > 0:
         print(f"{mesh.num_vertices()} vertices in mesh.",flush=True)
