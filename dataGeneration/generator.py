@@ -228,13 +228,13 @@ for sim, mesh_path in enumerate(mesh_paths):
 
 
         # Save nodal values to file
-        timeseries_u.store(u_.vector(), t)
-        timeseries_p.store(p_.vector(), t)
+        if (not args.dont_save) or (t >= t_thrs and mesh_path is None):  # Second condition applies only for benchmark
+            timeseries_u.store(u_.vector(), t)
+            timeseries_p.store(p_.vector(), t)
     
         # Update previous solution
-        if (not args.dont_save) or (t > t_thrs and mesh_path is None): #Second condition applies only for benchmark
-            u_n.assign(u_)
-            p_n.assign(p_)
+        u_n.assign(u_)
+        p_n.assign(p_)
     
         # Print progress
         if args.vlevel == 2:
