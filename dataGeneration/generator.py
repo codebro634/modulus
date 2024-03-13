@@ -19,6 +19,7 @@ import math
 parser = argparse.ArgumentParser()
 parser.add_argument("--num_frames",type=int, default=0, help="If > 0, save animation of simulation as gif with num_frames frames.")
 parser.add_argument('--dont_save', action='store_true', help='If set, the simulation results are NOT saved and simply discarded.')
+parser.add_argument('--qoi', action='store_true', help='If set, calculate and save quantities of interest. Assumes that the mesh/inflow is that of DFG cylinder flow 2D-2 benchmark.')
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt", type=float, default=0.0005, help="Delta t.")
 parser.add_argument("--saveN", type=int, default=20, help="Every how many steps to save.")
@@ -228,7 +229,7 @@ for sim, mesh_path in enumerate(mesh_paths):
 
 
         # Save nodal values to file
-        if (not args.dont_save) or (t >= t_thrs and mesh_path is None):  # Second condition applies only for benchmark
+        if (not args.dont_save) or (t >= t_thrs and args.qoi):  # Second condition applies only for benchmark
             timeseries_u.store(u_.vector(), t)
             timeseries_p.store(p_.vector(), t)
     
@@ -332,7 +333,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         sims_data.append(sim_data)
 
     #Calculate quantities of interest (for benchmark only)
-    if mesh_path is None:
+    if sim == 0 and args.qoi:
 
         times_v = timeseries_u.vector_times()
         times_p = timeseries_p.vector_times()
@@ -408,6 +409,12 @@ for sim, mesh_path in enumerate(mesh_paths):
         max_delta_p = np.max(dp)
 
         print(f"Frequency: {frequency} Strouhal number: {strouhal}, Drag coefficient: {drag_coef}, Lift coefficient: {lift_coef}, Max delta P: {max_delta_p}",flush=True)
+
+        #Save arrays as human readable format
+        np.savetxt(results_dir + "/drag_coefficient.txt",cd,delimiter=',',fmt="%s")
+        np.savetxt(results_dir + "/lift_coefficient.txt",cl,delimiter=',',fmt="%s")
+        np.savetxt(results_dir + "/delta_p.txt",dp,delimiter=',',fmt="%s")
+        np.savetxt(results_dir + "/times.txt",times,delimiter=',',fmt="%s")
 
     
     #Remove temp files
