@@ -19,7 +19,7 @@ import math
 parser = argparse.ArgumentParser()
 parser.add_argument("--num_frames",type=int, default=0, help="If > 0, save animation of simulation as gif with num_frames frames.")
 parser.add_argument('--dont_save', action='store_true', help='If set, the simulation results are NOT saved and simply discarded.')
-parser.add_argument('--qoi', action='store_true', help='If set, calculate and save quantities of interest. Assumes that the mesh/inflow is that of DFG cylinder flow 2D-2 benchmark.')
+parser.add_argument('--qoi', action='store_true', help='If set, calculate and save quantities of interest for the first simulation. Assumes that the mesh/inflow is that of DFG cylinder flow 2D-2 benchmark.')
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt", type=float, default=0.0005, help="Delta t.")
 parser.add_argument("--saveN", type=int, default=20, help="Every how many steps to save.")
@@ -238,10 +238,14 @@ for sim, mesh_path in enumerate(mesh_paths):
         p_n.assign(p_)
     
         # Print progress
+        progress_str = None
         if args.vlevel == 2:
-            print(f"Progress {n/num_steps}",flush=True)
+            progress_str = f"Progress {n/num_steps} in simulation {sim}/{len(mesh_paths)}"
         elif args.vlevel == 1 and n%100 == 0:
-            print(f"Progress {n/num_steps}",flush=True)
+            progress_str = f"Progress {n/num_steps} in simulation {sim}/{len(mesh_paths)}"
+        print(progress_str,flush=True)
+        with open(os.path.join(results_dir, 'progress.txt'), 'a') as f:
+            f.write(progress_str)
 
     if error_raised:
         if os.path.exists(tut + ".h5"):
