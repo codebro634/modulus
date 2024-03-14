@@ -245,7 +245,7 @@ for sim, mesh_path in enumerate(mesh_paths):
             progress_str = f"Progress {n/num_steps} in simulation {sim}/{len(mesh_paths)}"
         print(progress_str,flush=True)
         with open(os.path.join(results_dir, 'progress.txt'), 'a') as f:
-            f.write(progress_str)
+            f.write(progress_str+"\n")
 
     if error_raised:
         if os.path.exists(tut + ".h5"):
