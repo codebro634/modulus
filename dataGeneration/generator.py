@@ -8,6 +8,8 @@ import imageio
 import argparse
 import json
 import math
+import psutil
+import gc
 
 """
     Script for flow simulation using FEniCS and the Incremental Pressure Correction Scheme (IPCS). 
@@ -188,7 +190,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     
     # Time-stepping
     t = 0
-    image_v_locs,image_p_locs, error_raised = [],[], False
+    image_v_locs, image_p_locs, error_raised = [],[], False
     
     for n in range(num_steps): #num_steps
     
@@ -422,10 +424,13 @@ for sim, mesh_path in enumerate(mesh_paths):
         np.savetxt(results_dir + "/delta_p.txt",dp,delimiter=',',fmt="%s")
         np.savetxt(results_dir + "/times.txt",times,delimiter=',',fmt="%s")
 
-    
-    #Remove temp files
+    #Memory cleanup
     os.remove(tut+".h5")
     os.remove(tpt+".h5")
+    timeseries_u.close()
+    timeseries_p.close()
+    sims_data = []
+    gc.collect()
 
 #Save all simulations into a single file
 if not args.dont_save:
