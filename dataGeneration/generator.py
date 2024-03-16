@@ -431,13 +431,17 @@ for sim, mesh_path in enumerate(mesh_paths):
     os.remove(tpt + ".h5")
     del timeseries_p
     del timeseries_u
-    if sim % 10 == 0:
+    if (sim+1) % 10 == 0:
         if not args.dont_save:
-            np.save(results_dir + f"/simdata{sim - 10}_{sim}.npy", sims_data)
+            np.save(results_dir + f"/simdata{sim - 9}_{sim}.npy", sims_data)
         sims_data = []
     gc.collect()
     if args.vlevel > 0:
         print(f"Used Memory: {psutil.virtual_memory().used / 1024 ** 2} MB")
+
+#Save remaining simulations
+if len(sims_data) > 0 and (not args.dont_save):
+    np.save(results_dir + f"/simdata_rest.npy", sims_data)
 
 
 
