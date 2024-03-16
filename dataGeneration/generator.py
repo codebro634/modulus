@@ -425,12 +425,15 @@ for sim, mesh_path in enumerate(mesh_paths):
         np.savetxt(results_dir + "/times.txt",times,delimiter=',',fmt="%s")
 
     #Memory cleanup
-    os.remove(tut+".h5")
-    os.remove(tpt+".h5")
-    timeseries_u.close()
-    timeseries_p.close()
-    sims_data = []
+    os.remove(tut + ".h5")
+    os.remove(tpt + ".h5")
+    del timeseries_p
+    del timeseries_u
+    if sim % 1 == 0:
+        np.save(results_dir + f"/simdata{sim - 1}_{sim}.npy", sims_data)
+        sims_data = []
     gc.collect()
+    print(f"Used Memory: {psutil.virtual_memory().used / 1024 ** 2} MB")
 
 #Save all simulations into a single file
 if not args.dont_save:
