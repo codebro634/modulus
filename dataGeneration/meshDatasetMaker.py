@@ -14,7 +14,7 @@ parser.add_argument("--oy", type=float, default=0.2, help="Mean object y mid poi
 parser.add_argument("--osize", type=float, default=0.05, help="Mean object size. (e.g. radius for circles)")
 parser.add_argument("--inflow_peak_mean", type=float, default=1.25, help="Mean of the inflow peak.")
 parser.add_argument("--inflow_peak_max_deviation", type=float, default=1.0, help="Max deviation from inflow mean.")
-parser.add_argument("--num_meshes", type=int, default=441, help="Number of meshes to generate.")
+parser.add_argument("--num_meshes", type=int, default=500, help="Number of meshes to generate.")
 parser.add_argument('--name', type=str,help='Name of mesh dataset. Is saved under meshes/NAME. Default is standard_cylinder.')
 parser.add_argument("--two_obj", action="store_true", help="If set, allow two objects to be generated.")
 parser.add_argument("--rotate", action="store_true", help="If set, allow objects to be randomly rotated.")
@@ -41,9 +41,6 @@ num_meshes = args.num_meshes #Training +  test + intermediate evaluation
 
 def sample_uniform(mean, max_deviation):
     return np.random.uniform(mean-max_deviation, mean+max_deviation)
-
-#def sample_gauss(mean, std, cap=2):
-#    return min(mean+cap*std,max(mean-cap*std,np.random.normal(mean, std)))
 
 def standard_cylinder_mesh_set():
     meshes = []
@@ -110,10 +107,9 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
 
 mixed_mesh_set(args.two_obj, args.circs, args.tris, args.quads, args.stretch, args.rotate, args.name)
 
-
-# standard_cylinder_mesh_set()
-# mixed_mesh_set(True,True,False,False,False,False,"2cylinders")
-# mixed_mesh_set(False,True,True,True,False,True,"cylinder_tri_quad")
-# mixed_mesh_set(False,True,False,False,True,False,"cylinder_stretch")
-# mixed_mesh_set(True,True,True,True,True,True,"mixed_all")
+#standard_cylinder_mesh_set()
+#mixed_mesh_set(True,True,False,False,False,False,"2cylinders")
+#mixed_mesh_set(False,True,True,True,False,True,"cylinder_tri_quad")
+#mixed_mesh_set(False,True,False,False,True,False,"cylinder_stretch")
+#mixed_mesh_set(True,True,True,True,True,True,"mixed_all")
 

@@ -1,1 +1,1 @@
-{"nodes": 2582, "object_boundaries": ["on_boundary && x[0]>0.1 && x[0]< 0.3 && x[1]>0.1 && x[1]< 0.3"], "height": 0.41, "width": 2.2}
+{"nodes": 2582, "cells": 4898, "object_boundaries": ["on_boundary && x[0]>0.1 && x[0]< 0.3 && x[1]>0.1 && x[1]< 0.3"], "height": 0.41, "width": 2.2}

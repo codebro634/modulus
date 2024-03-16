@@ -1,1 +1,0 @@
-{"nodes": 2019, "object_boundaries": ["on_boundary && x[0]>0.1171 && x[0]< 0.33242 && x[1]>0.18573 && x[1]< 0.37584"], "height": 0.41, "width": 1.6, "inflow_peak": 2.04}

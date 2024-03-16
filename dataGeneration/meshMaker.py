@@ -5,6 +5,7 @@ from copy import deepcopy
 import math
 import os
 import json
+import scipy.special
 
 """
     gObject defines a geometric which will be a hole in the rectangular mesh domain.
@@ -154,14 +155,46 @@ def create_equi_tri(mid, r) -> gObject:
     objects: list[gObject] - The list of objects that will be holes in the mesh
     mesh_size: float - The size of the mesh triangles
 """
-def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [gObject()], mesh_size = 0.0225):
+def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [gObject()], mesh_size = 0.0225, o_size = 0.0098):
     with pygmsh.geo.Geometry() as geom:
         geo_objects = []
         for obj in objects:
             if obj.shape == 'ellipse':
-                num_sections = 32
-                points =  [(obj.args['x0'][0] + obj.args['w'] * np.cos(2 * np.pi * k / num_sections),
-                            obj.args['x0'][1] + obj.args['h'] * np.sin(2 * np.pi * k / num_sections)) for k in range(num_sections) ]
+                #Determine number of segments
+                w, h = obj.args['w'], obj.args['h']
+                circumf = 4 * w * scipy.special.ellipe((w**2 - h**2) / w**2)
+                norm_circumf = math.pi * 0.1
+                num_sections = int(int((32 * circumf) / norm_circumf)) #32 segments for the 0.05 radius circle is the norm
+
+                #Approximate ellipse by approximately num_sections equally spaced points
+
+                if w == h: #Special case circle can be handled exactly
+                    points = [(obj.args['x0'][0] + obj.args['w'] * np.cos(2 * np.pi * k / num_sections),
+                               obj.args['x0'][1] + obj.args['h'] * np.sin(2 * np.pi * k / num_sections)) for k in
+                              range(num_sections)]
+                else:
+                    points = []
+                    last_theta = 0
+                    while last_theta < 2 * np.pi:
+                        #Approximate arc segment length from theta to next_theta
+                        next_theta = last_theta + 2 * np.pi / num_sections
+                        next_x = obj.args['x0'][0] + w * np.cos(next_theta)
+                        next_y = obj.args['x0'][1] + h * np.sin(next_theta)
+                        last_x = obj.args['x0'][0] + w * np.cos(last_theta)
+                        last_y = obj.args['x0'][1] + h * np.sin(last_theta)
+                        dist = np.sqrt((next_x - last_x) ** 2 + (next_y - last_y) ** 2)
+
+                        #Approx theta such that the arc segment length is norm_circumf / num_sections
+                        sharpness = (circumf / (num_sections * dist))
+                        theta = min(2 * np.pi, last_theta + sharpness * 2 * np.pi / num_sections) #Make sure we don't overshoot
+                        if 2 * np.pi - theta < np.pi / (2 * num_sections): #Make sure we don't end up with a tiny segment at the end
+                            theta = 2 * np.pi
+                        x = obj.args['x0'][0] + w * np.cos(theta)
+                        y = obj.args['x0'][1] + h * np.sin(theta)
+
+                        points.append((x, y))
+                        last_theta = theta
+
                 geo_objects.append(
                     geom.add_polygon(
                         points=points,
@@ -172,13 +205,13 @@ def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [
             elif obj.shape == 'rect':
                 geo_objects.append(geom.add_polygon(
                     points=[obj.args['x0'], obj.args['x1'], obj.args['x2'], obj.args['x3']],
-                    mesh_size=mesh_size,
+                    mesh_size=o_size,
                     make_surface=False,
                 ))
             elif obj.shape == 'tri':
                 geo_objects.append(geom.add_polygon(
                     points=[obj.args['x0'] + [0], obj.args['x1'] + [0], obj.args['x2'] + [0]],
-                    mesh_size=mesh_size,
+                    mesh_size=o_size,
                     make_surface=False,
                 ))
             else:
@@ -194,7 +227,7 @@ def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [
     mesh = meshio.Mesh(mesh.points[:, :2], {"triangle": mesh.get_cells_type("triangle")})
 
 
-    return mesh, {'nodes': len(mesh.points), 'object_boundaries': [obj.boundary_string() for obj in objects], 'height': height, 'width': width}
+    return mesh, {'nodes': len(mesh.points), 'cells': mesh.cells[0].data.shape[0], 'object_boundaries': [obj.boundary_string() for obj in objects], 'height': height, 'width': width}
 
 def save_mesh(mesh: meshio.Mesh, metadata: dict, mesh_name: str, folder: str):
     #Create folder if it does not exist
@@ -214,9 +247,10 @@ def save_mesh(mesh: meshio.Mesh, metadata: dict, mesh_name: str, folder: str):
         json.dump(metadata, f)
 
 
-#tri = create_equi_tri([0.33, 0.2], 0.05)
-#tri = squish_object(tri, 1.0, 1.0)
-#rect = rotate_object(create_rect([0.33, 0.2], 0.05, 0.1),45)
-circ = create_ellipse([0.2, 0.2], 0.05,0.05)
-mesh, metadata = create_mesh(objects=[circ], width=2.2)
-save_mesh(mesh, metadata, 'benchmark', 'meshes')
+#tri = create_equi_tri([0.66, 0.1], 0.05)
+#o2 = squish_object(tri, 1.0, 1.3)
+#o = rotate_object(create_rect([0.33, 0.2], 0.05, 0.08), 0)
+#o = create_ellipse([0.2, 0.2], 0.07, 0.07)
+#o2 = create_ellipse([0.7, 0.3], 0.05, 0.05)
+#mesh, metadata = create_mesh(objects=[o,o2], width=1.6)
+#save_mesh(mesh, metadata, 'test', 'meshes')
