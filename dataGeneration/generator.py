@@ -61,7 +61,7 @@ if args.mesh_range is not None:
     assert int(end) > int(start)
     mesh_paths = mesh_paths[int(start):int(end)]
 
-sims_data, failed_meshes = [], [] #One entry for each simulation
+sims_data = [] #One entry for each simulation
 num_frames = args.num_frames
 t_thrs = 25.0 #Only needed when quantities of interest are calculated
 for sim, mesh_path in enumerate(mesh_paths):
@@ -212,8 +212,10 @@ for sim, mesh_path in enumerate(mesh_paths):
             b3 = assemble(L3)
             solve(A3, u_.vector(), b3, 'cg', 'sor')
         except RuntimeError:
-            print(f"Error raised at time step {n} for mesh {mesh_path}.",flush=True)
-            failed_meshes.append(mesh_path)
+            if args.vlevel > 0:
+                print(f"Error raised at time step {n} for mesh {mesh_path}.", flush=True)
+            with open(os.path.join(results_dir, 'failed_meshes.txt'), 'a') as f:
+                f.write(mesh_path + ",")
             error_raised = True
             break
     
@@ -429,15 +431,12 @@ for sim, mesh_path in enumerate(mesh_paths):
     os.remove(tpt + ".h5")
     del timeseries_p
     del timeseries_u
-    if sim % 1 == 0:
+    if sim % 1 == 0 and not args.dont_save:
         np.save(results_dir + f"/simdata{sim - 1}_{sim}.npy", sims_data)
         sims_data = []
     gc.collect()
-    print(f"Used Memory: {psutil.virtual_memory().used / 1024 ** 2} MB")
+    if args.vlevel > 0:
+        print(f"Used Memory: {psutil.virtual_memory().used / 1024 ** 2} MB")
 
-#Save all simulations into a single file
-if not args.dont_save:
-    np.save(results_dir+"/simdata.npy",sims_data)
-    np.savetxt(results_dir+"/failed_meshes.txt",failed_meshes, delimiter=',', fmt="%s")
 
 
