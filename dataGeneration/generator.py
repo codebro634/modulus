@@ -431,8 +431,9 @@ for sim, mesh_path in enumerate(mesh_paths):
     os.remove(tpt + ".h5")
     del timeseries_p
     del timeseries_u
-    if sim % 1 == 0 and not args.dont_save:
-        np.save(results_dir + f"/simdata{sim - 1}_{sim}.npy", sims_data)
+    if sim % 10 == 0:
+        if not args.dont_save:
+            np.save(results_dir + f"/simdata{sim - 10}_{sim}.npy", sims_data)
         sims_data = []
     gc.collect()
     if args.vlevel > 0:
