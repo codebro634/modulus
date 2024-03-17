@@ -47,6 +47,7 @@ class Constants(BaseModel):
     jit: bool = False
 
     # test & visualization configs
+    animate: bool = True
     verbose: bool = True
     inter_eval: bool = False #Whether or not to do a mini-evaluation after each epoch
     num_test_samples: int = 40

@@ -16,8 +16,6 @@ import gc
     The Code is a modification of the tutorial found at: https://fenicsproject.org/pub/tutorial/html/._ftut1009.html
 """
 
-#TODO check if this code works for multiple obstacles
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--num_frames",type=int, default=0, help="If > 0, save animation of simulation as gif with num_frames frames.")
 parser.add_argument('--dont_save', action='store_true', help='If set, the simulation results are NOT saved and simply discarded.')

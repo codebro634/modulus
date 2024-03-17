@@ -26,7 +26,7 @@ from modulus.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
 from modulus.launch.utils import load_checkpoint
 from constants import Constants
 from time import time
-import math
+from copy import deepcopy
 
 """
 MGNRollout manages the inference loop for the MeshGraphNet model.
@@ -256,6 +256,8 @@ class MGNRollout:
             if self.C.verbose:
                 print(f"Inter eval sim {inter_sim}: 1step {rmse_1_step[0]}, 50step {rmse_50_step[0]}, allstep {rmse_all_step[0]}")
 
+        return result_dict
+
 
     def init_animation(self, idx):
         self.pred_i = [var[:, idx] for var in self.pred]
@@ -329,12 +331,12 @@ class MGNRollout:
 """
     intermediate_eval: If True, then the model will only evaluated on each simulation in the test_tiny dataset split. 
                        If False, then the model will be evaluated on the entire test dataset split, the result will be 
-                       logged into 'logs.txt'. Furthermore, the model's prediction is animated and saved into 'animations'.
+                       logged into 'logs.txt'. Furthermore, the model's prediction is animated (if set in Constants C ) and saved into 'animations'.
 """
 def evaluate_model(C: Constants, intermediate_eval: bool = False):
     if intermediate_eval:
         num_samples = VortexSheddingDataset( name="vortex_shedding_test", data_dir=C.data_dir, split="test_tiny", verbose=False).num_samples
-        for i in range(num_samples):
+        for i in range(num_samples): #Get results for each individual simulation
             rollout = MGNRollout(C,inter_sim=i)
             rollout.predict(inter_sim=i)
     else:
@@ -346,13 +348,43 @@ def evaluate_model(C: Constants, intermediate_eval: bool = False):
         rollout.predict()
 
         #Animate model's predictions on all test graphs
-        idx = [rollout.var_identifier[k] for k in C.viz_vars]
-        for i in idx:
-            rollout.init_animation(i)
-            ani = animation.FuncAnimation(
-                rollout.fig,
-                rollout.animate,
-                frames=len(rollout.graphs) // C.frame_skip,
-                interval=C.frame_interval,
-            )
-            ani.save(f"animations/{C.ckpt_name.split('.')[0]}_animation_" + C.viz_vars[i] + ".gif")
+        if C.animate:
+            idx = [rollout.var_identifier[k] for k in C.viz_vars]
+            for i in idx:
+                rollout.init_animation(i)
+                ani = animation.FuncAnimation(
+                    rollout.fig,
+                    rollout.animate,
+                    frames=len(rollout.graphs) // C.frame_skip,
+                    interval=C.frame_interval,
+                )
+                ani.save(f"animations/{C.ckpt_name.split('.')[0]}_animation_" + C.viz_vars[i] + ".gif")
+
+"""
+    Evaluate each given model group on each given dataset.
+    
+    model_groups: List of lists of model names. The results for all models within one model group will be averaged.
+    datasets: List of datasets to be evaluted.
+"""
+def pairwise_evaluation(model_groups: list[list], datasets: list[str], C: Constants = Constants()):
+    C = deepcopy(C)
+    C.animate = False
+
+    for dataset in datasets:
+        C.data_dir = dataset
+        #Evaluate each model within model group and average results
+        for model_group in model_groups:
+            result_sum = None
+            for model in model_group:
+                C.exp_name, C.ckpt_name = model, model
+                res_dict = evaluate_model(C, intermediate_eval=False)
+                if result_sum is None:
+                    result_sum = res_dict
+                else:
+                    for key, value in res_dict.items():
+                        result_sum[key] += value
+
+            #Print results
+            print(f"-------{C.exp_name} --> {C.data_dir}----------")
+            for key, value in result_sum.items():
+                print(f"{key}: {value/len(model_group)}")
