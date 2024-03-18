@@ -34,7 +34,7 @@ python examples/cfd/vortex_sheddin_mgn/main.py --exp_name <str> --data_dir <str>
 # Generate meshes
 
 ```
-python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--width <float> --height <float> --ox <float> --oy <float> --osize <float> --inflow_peak_mean <float> --inflow_peak_max_deviation <float> --two_obj --rotate --stretch --circs --tris --quads]
+python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--width <float> --height <float> --ox <float> --oy <float> --osize <float> --inflow_peak_mean <float> --inflow_peak_max_deviation <float> --two_obj_prob <float> --rotate --stretch --circs --tris --quads]
 ```
 - `name`: Name of the mesh dataset. The generated meshes are saved into meshes/`name`
 - `num_meshes`: Number of meshes to generate
@@ -47,7 +47,7 @@ python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--wid
 - `osize`: Mean object size (e.g. radius for circles). Default: 0.05
 - `inflow_peak_mean`:  Mean of the inflow peak. Default: 1.25
 - `inflow_peak_max_derivation`: Inflow peak is sampled from uniform[inflow_peak_mean-inflow_peak_max_derivation,inflow_peak_mean+inflow_peak_max_derivation]. Default: 1.0
-- `two_obj`: If set, a second object is randomly added
+- `two_obj_prob`: A second object is randomly added with this probability. Default: 0
 - `rotate`: If set, the object(s) get randomly rotated
 - `stretch`: If set, the object(s) get randomly stretched/squeezed in the x/y-direction
 - `circs`: If set, circles are part of the possible objects that can be generated

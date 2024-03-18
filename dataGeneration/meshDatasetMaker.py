@@ -16,7 +16,7 @@ parser.add_argument("--inflow_peak_mean", type=float, default=1.25, help="Mean o
 parser.add_argument("--inflow_peak_max_deviation", type=float, default=1.0, help="Max deviation from inflow mean.")
 parser.add_argument("--num_meshes", type=int, default=500, help="Number of meshes to generate.")
 parser.add_argument('--name', type=str,help='Name of mesh dataset. Is saved under meshes/NAME. Default is standard_cylinder.')
-parser.add_argument("--two_obj", action="store_true", help="If set, allow two objects to be generated.")
+parser.add_argument("--two_obj_prob", type=float, default=0.0, help="Probability with which two objects are generated.")
 parser.add_argument("--rotate", action="store_true", help="If set, allow objects to be randomly rotated.")
 parser.add_argument("--stretch", action="store_true", help="If set, allow objects to be randomly stretched/squeezed.")
 parser.add_argument("--circs", action="store_true", help="If set, add circles to the set of possible objects.")
@@ -60,7 +60,7 @@ def standard_cylinder_mesh_set():
     for i, mesh in enumerate(meshes):
         save_mesh(mesh[0],mesh[1], f"mesh{i+1}", "meshes/standard_cylinder")
 
-def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False, stretching = False, rotate = False, name: str = "mixed"):
+def mixed_mesh_set(two_objs_prob = 0.0, circles = True, tris = False, quads = False, stretching = False, rotate = False, name: str = "mixed"):
     meshes = []
 
     def make_object(x0):
@@ -103,26 +103,27 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
         x0 = [sample_uniform(object_x_mid, 0.175), sample_uniform(object_y_mid, 0.1)]
 
         objects = [make_object(x0)] if i > 0 else [create_ellipse([object_x_mid,object_y_mid], object_size, object_size)]
-        if np.random.rand() <= 0.25 and two_objs and i > 0: #Make it 'rare' to have two objects
+        if np.random.rand() < two_objs_prob and i > 0:
             x0 = [sample_uniform(object_x_mid + 0.5, 0.175), sample_uniform(object_y_mid, 0.1)]
             objects.append(make_object(x0))
         meshes.append(create_mesh(height=height,width=width,objects=objects))
-        meshes[-1][1]["inflow_peak"] = round(sample_uniform(inflow_peak,inflow_max_deviation), 2) if i > 0 else inflow_peak
+        meshes[-1][1]["inflow_peak"] = round(sample_uniform(inflow_peak,inflow_max_deviation), 3) if i > 0 else inflow_peak
 
     #Save meshes:
     for i, mesh in enumerate(meshes):
         save_mesh(mesh[0],mesh[1], f"mesh{i+1}", f"meshes/{name}")
 
 
-#mixed_mesh_set(args.two_obj, args.circs, args.tris, args.quads, args.stretch, args.rotate, args.name)
+#mixed_mesh_set(args.two_obj_prob, args.circs, args.tris, args.quads, args.stretch, args.rotate, args.name)
 
-#print("standard")
-#standard_cylinder_mesh_set()
-#print("2cyl")
-#mixed_mesh_set(True,True,False,False,False,False,"2cylinders")
-#print("tri quad")
-#mixed_mesh_set(False,True,True,True,False,True,"cylinder_tri_quad")
-#print("stretch")
-#mixed_mesh_set(False,True,False,False,True,False,"cylinder_stretch")
-mixed_mesh_set(True,True,True,True,True,True,"mixed_all")
+print("standard")
+mixed_mesh_set(0,True,False,False,False,False,"standard_cylinder")
+print("2cyl")
+mixed_mesh_set(0.5,True,False,False,False,False,"2cylinders")
+print("tri quad")
+mixed_mesh_set(False,True,True,True,False,True,"cylinder_tri_quad")
+print("stretch")
+mixed_mesh_set(False,True,False,False,True,False,"cylinder_stretch")
+print("mixed")
+mixed_mesh_set(0.25, True, True, True, True,True,"mixed_all")
 
