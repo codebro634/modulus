@@ -58,6 +58,8 @@ class VortexSheddingDataset(DGLDataset):
         Name of the dataset, by default "dataset"
     data_dir : _type_, optional
         Specifying the directory that stores the raw data in .TFRecord format., by default None
+    norm_data_dir : _type_, optional
+        If set, the normalization stats for test split are taken from this directory. If None, normalization is computed from data_dir
     split : str, optional
         Dataset split ["train", "eval", "test"], by default "train"
     num_samples : int, optional
@@ -76,6 +78,7 @@ class VortexSheddingDataset(DGLDataset):
         self,
         name="dataset",
         data_dir=None,
+        norm_data_dir=None,
         split="train",
         num_samples=None,
         start_step=0,
@@ -153,11 +156,17 @@ class VortexSheddingDataset(DGLDataset):
         if self.split == "train":
             self.edge_stats = self._get_edge_stats()
         else:
-            if not os.path.exists(f"{self.data_dir}/edge_stats.json"):
+            if norm_data_dir is not None and os.path.exists(f"{norm_data_dir}/edge_stats.json"):
+                if verbose:
+                    print(f"Loading edge_stats from {norm_data_dir}...", flush=True)
+                self.edge_stats = load_json(f"{norm_data_dir}/edge_stats.json")
+            elif not os.path.exists(f"{self.data_dir}/edge_stats.json"):
                 if verbose:
                     print("Warning: edge_state.json not found. Therefore computing those with the test data set.")
                 self.edge_stats = self._get_edge_stats()
             else:
+                if verbose:
+                    print(f"Loading edge_stats from {self.data_dir}...", flush=True)
                 self.edge_stats = load_json(f"{self.data_dir}/edge_stats.json")
 
         # normalize edge features
@@ -198,11 +207,17 @@ class VortexSheddingDataset(DGLDataset):
         if self.split == "train":
             self.node_stats = self._get_node_stats()
         else:
-            if not os.path.exists(f"{self.data_dir}/node_stats.json"):
+            if norm_data_dir is not None and os.path.exists(f"{norm_data_dir}/node_stats.json"):
+                if verbose:
+                    print(f"Loading node_stats from {norm_data_dir}...", flush=True)
+                self.node_stats = load_json(f"{norm_data_dir}/node_stats.json")
+            elif not os.path.exists(f"{self.data_dir}/node_stats.json"):
                 if verbose:
                     print("Warning: node_stats.json not found. Therefore computing those with the test data set.")
                 self.node_stats = self._get_node_stats()
             else:
+                if verbose:
+                    print(f"Loading node_stats from {self.data_dir}...", flush=True)
                 self.node_stats = load_json(f"{self.data_dir}/node_stats.json")
 
         # normalize node

@@ -55,9 +55,10 @@ else:
         raise Exception(f"No meshes found in {args.mesh}")
 
 if args.mesh_range is not None:
-    start,end = args.mesh_range.split(',')
-    assert int(end) > int(start)
-    mesh_paths = mesh_paths[int(start):int(end)]
+    start, end = args.mesh_range.split(',')
+    start, end = int(start), int(end)
+    assert end > start
+    mesh_paths = mesh_paths[start:end]
 
 sims_data = [] #One entry for each simulation
 num_frames = args.num_frames
@@ -431,7 +432,8 @@ for sim, mesh_path in enumerate(mesh_paths):
     del timeseries_u
     if (sim+1) % 10 == 0:
         if not args.dont_save:
-            np.save(results_dir + f"/simdata{sim - 9}_{sim}.npy", sims_data)
+            offset = 0 if args.mesh_range is None else int(args.mesh_range.split(',')[0])
+            np.save(results_dir + f"/simdata{sim - 9 + offset}_{sim + offset}.npy", sims_data)
         sims_data = []
     gc.collect()
     if args.vlevel > 0:

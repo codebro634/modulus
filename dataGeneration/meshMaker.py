@@ -23,29 +23,38 @@ class gObject:
         self.args = args
 
     #Returns the string to be used in the boundary condition of the object for Fenics
-    def boundary_string(self):
-        tol, dp = 0.05, 5
+    def boundary_string(self, as_coords: bool = False):
+        tol, dp = 0.005, 5
         if self.shape == 'ellipse':
-            return f"on_boundary && x[0]>{round(self.args['x0'][0] - tol - self.args['w'],dp)} && " \
-                   f"x[0]< {round(self.args['x0'][0] + tol + self.args['w'],dp)} && " \
-                   f"x[1]>{round(self.args['x0'][1] - tol - self.args['h'],dp)} && " \
-                   f"x[1]< {round(self.args['x0'][1] + tol + self.args['h'],dp)}"
+            xmin = self.args['x0'][0] - self.args['w']
+            xmax = self.args['x0'][0] + self.args['w']
+            ymin = self.args['x0'][1] - self.args['h']
+            ymax = self.args['x0'][1] + self.args['h']
         elif self.shape == 'rect':
             xmin = min(self.args['x0'][0], self.args['x1'][0], self.args['x2'][0], self.args['x3'][0])
             xmax = max(self.args['x0'][0], self.args['x1'][0], self.args['x2'][0], self.args['x3'][0])
             ymin = min(self.args['x0'][1], self.args['x1'][1], self.args['x2'][1], self.args['x3'][1])
             ymax = max(self.args['x0'][1], self.args['x1'][1], self.args['x2'][1], self.args['x3'][1])
-            return f"on_boundary && x[0]>{round(xmin - tol,dp)} && " \
-                      f"x[0]< {round(xmax + tol,dp)} && " \
-                        f"x[1]>{round(ymin - tol,dp)} && " \
-                        f"x[1]< {round(ymax + tol,dp)}"
         elif self.shape == 'tri':
-            return f"on_boundary && x[0]>{round(min(self.args['x0'][0], self.args['x1'][0], self.args['x2'][0]) - tol,dp)} && " \
-                   f"x[0]< {round(max(self.args['x0'][0], self.args['x1'][0], self.args['x2'][0]) + tol,dp)} && " \
-                   f"x[1]>{round(min(self.args['x0'][1], self.args['x1'][1], self.args['x2'][1]) - tol,dp)} && " \
-                   f"x[1]< {round(max(self.args['x0'][1], self.args['x1'][1], self.args['x2'][1]) + tol,dp)}"
+            xmin = min(self.args['x0'][0], self.args['x1'][0], self.args['x2'][0])
+            xmax = max(self.args['x0'][0], self.args['x1'][0], self.args['x2'][0])
+            ymin = min(self.args['x0'][1], self.args['x1'][1], self.args['x2'][1])
+            ymax = max(self.args['x0'][1], self.args['x1'][1], self.args['x2'][1])
         else:
             raise Exception(f'Shape {self.shape} not supported for boundary string')
+
+        xmin = round(xmin - tol, dp)
+        xmax = round(xmax + tol, dp)
+        ymin = round(ymin - tol, dp)
+        ymax = round(ymax + tol, dp)
+
+        if as_coords:
+            return xmin, xmax, ymin, ymax
+        else:
+            return f"on_boundary && x[0]>{xmin} && " \
+                   f"x[0]< {xmax} && " \
+                   f"x[1]>{ymin} && " \
+                   f"x[1]< {ymax}"
 
 """
     Methods for manipulating gObjects:

@@ -85,7 +85,16 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
         objects.append(rect) if quads else None
 
         idx = np.random.randint(len(objects))
-        return objects[idx]
+        obj = objects[idx]
+        boundary_box = obj.boundary_string(as_coords=True)
+        xmin,xmax,ymin,ymax = boundary_box
+
+        min_edge_dist = 0.02
+        if xmin < min_edge_dist or xmax > width-min_edge_dist or ymin < min_edge_dist or ymax > height-min_edge_dist:
+            print(f"Had to redo object: {obj.boundary_string()} ")
+            return make_object(x0)
+        else:
+            return objects[idx]
 
     #Generate meshes
     for i in range(num_meshes):
@@ -105,11 +114,15 @@ def mixed_mesh_set(two_objs = False, circles = True, tris = False, quads = False
         save_mesh(mesh[0],mesh[1], f"mesh{i+1}", f"meshes/{name}")
 
 
-mixed_mesh_set(args.two_obj, args.circs, args.tris, args.quads, args.stretch, args.rotate, args.name)
+#mixed_mesh_set(args.two_obj, args.circs, args.tris, args.quads, args.stretch, args.rotate, args.name)
 
+#print("standard")
 #standard_cylinder_mesh_set()
+#print("2cyl")
 #mixed_mesh_set(True,True,False,False,False,False,"2cylinders")
+#print("tri quad")
 #mixed_mesh_set(False,True,True,True,False,True,"cylinder_tri_quad")
+#print("stretch")
 #mixed_mesh_set(False,True,False,False,True,False,"cylinder_stretch")
-#mixed_mesh_set(True,True,True,True,True,True,"mixed_all")
+mixed_mesh_set(True,True,True,True,True,True,"mixed_all")
 

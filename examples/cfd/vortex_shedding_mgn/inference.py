@@ -44,6 +44,7 @@ class MGNRollout:
         self.dataset = VortexSheddingDataset(
             name="vortex_shedding_test",
             data_dir=C.data_dir,
+            norm_data_dir=C.norm_data_dir,
             split="test_tiny" if inter_sim is not None else "test",
             start_step=C.first_step,
             start_sim=inter_sim if inter_sim is not None else 0,
@@ -92,6 +93,8 @@ class MGNRollout:
         Rollout the model and calculate the RMSE for the velocity and pressure fields for 1, 50 and all steps in the loaded dataset.
         
         inter_sim: If not None, then the results will also be logged to 'logs.txt'.
+        
+        The results are returned as dictionary.
     """
     def predict(self, inter_sim=None):
         self.pred, self.exact, self.faces, self.graphs, self.pred_one_step = [], [], [], [], []
@@ -363,10 +366,11 @@ def evaluate_model(C: Constants, intermediate_eval: bool = False):
 """
     Evaluate each given model group on each given dataset.
     
-    model_groups: List of lists of model names. The results for all models within one model group will be averaged.
+    model_groups: List of lists of model names. Can also be a tuple with dir from which the normalization data should be taken in second position.
+                  The results for all models within one model group will be averaged.
     datasets: List of datasets to be evaluted.
 """
-def pairwise_evaluation(model_groups: list[list], datasets: list[str], C: Constants = Constants()):
+def pairwise_evaluation(model_groups: list[list[str]|tuple[list[str],str]], datasets: list[str], C: Constants = Constants()):
     C = deepcopy(C)
     C.animate = False
 
@@ -374,17 +378,25 @@ def pairwise_evaluation(model_groups: list[list], datasets: list[str], C: Consta
         C.data_dir = dataset
         #Evaluate each model within model group and average results
         for model_group in model_groups:
-            result_sum = None
+            if isinstance(model_group,tuple):
+                model_group, C.norm_data_dir = model_group[0], model_group[1]
+            else:
+                C.norm_data_dir = None
+            result_sum = {}
             for model in model_group:
                 C.exp_name, C.ckpt_name = model, model
                 res_dict = evaluate_model(C, intermediate_eval=False)
-                if result_sum is None:
-                    result_sum = res_dict
-                else:
-                    for key, value in res_dict.items():
-                        result_sum[key] += value
+                for key, value in res_dict.items():
+                    if key not in result_sum:
+                        result_sum[key] = [value]
+                    else:
+                        result_sum[key] += [value]
 
             #Print results
             print(f"-------{C.exp_name} --> {C.data_dir}----------")
             for key, value in result_sum.items():
-                print(f"{key}: {value/len(model_group)}")
+                print(f"{key} | Min:{min(value)} Max:{max(value)} Avg:{sum(value)/len(value)}")
+
+
+#Non existent path => newly initialized model
+#pairwise_evaluation([["model1","model2"]],["./raw_dataset/cylinder_flow/cylinder_flow"]) #Example usage

@@ -22,6 +22,7 @@ class Constants(BaseModel):
 
     # data configs
     data_dir: str = "./raw_dataset/cylinder_flow/cylinder_flow"
+    norm_data_dir: str = None #If set, take the edge/node normalization from this dir for inference
     exp_name: str = "model"
     ckp: int = None #None loads the latest checkpoint, -1 initializes a new model
 
