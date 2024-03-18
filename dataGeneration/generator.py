@@ -94,7 +94,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         channel_width = metadata['width']
         channel_height = metadata['height']
         obstacle_condition = " || ".join(['(' + x + ')' for x in metadata['object_boundaries']])
-        if inflow_peak in metadata:
+        if 'inflow_peak' in metadata:
             inflow_peak = metadata['inflow_peak']
     else:
         channel = Rectangle(Point(0, 0), Point(2.2, 0.41))
@@ -106,8 +106,9 @@ for sim, mesh_path in enumerate(mesh_paths):
         obstacle_condition = 'on_boundary && x[0]>0.1 && x[0]<0.3 && x[1]>0.1 && x[1]<0.3'
 
     if args.vlevel > 0:
+        print(f"Mesh: {mesh_path}",flush=True)
         print(f"{mesh.num_vertices()} vertices in mesh.",flush=True)
-        print(f"Width: {channel_width}, Height: {channel_height}",flush=True)
+        print(f"Width: {channel_width}, Height: {channel_height}, Inflow peak: {inflow_peak}",flush=True)
         print(f"Obstacle condition: {obstacle_condition}",flush=True)
     
     # Define function spaces
