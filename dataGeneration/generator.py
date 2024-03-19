@@ -111,7 +111,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     dt = args.dt_real / N_save
 
     assert N_save * dt == args.dt_real, f"dt_real: {args.dt_real}, N_save: {N_save}, dt: {dt}"
-    num_steps = math.ceil(args.t / dt) + N_save  # number of time steps
+    num_steps = math.ceil( (args.t * N_save) / args.dt_real) + N_save  # number of time steps
 
     # Default PDE parameters
     mu = 0.001  # dynamic viscosity
@@ -260,9 +260,9 @@ for sim, mesh_path in enumerate(mesh_paths):
         # Print progress
         progress_str = None
         if args.vlevel == 2:
-            progress_str = f"Progress {n / num_steps} in simulation {sim}/{len(mesh_paths)}"
+            progress_str = f"Progress {n / num_steps} in simulation {sim+1}/{len(mesh_paths)}"
         elif args.vlevel == 1 and n % 100 == 0:
-            progress_str = f"Progress {n / num_steps} in simulation {sim}/{len(mesh_paths)}"
+            progress_str = f"Progress {n / num_steps} in simulation {sim+1}/{len(mesh_paths)}"
 
         if progress_str is not None:
             print(progress_str, flush=True)
