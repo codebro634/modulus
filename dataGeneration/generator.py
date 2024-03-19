@@ -19,11 +19,12 @@ import gc
 parser = argparse.ArgumentParser()
 parser.add_argument("--num_frames",type=int, default=0, help="If > 0, save animation of simulation as gif with num_frames frames.")
 parser.add_argument('--dont_save', action='store_true', help='If set, the simulation results are NOT saved and simply discarded.')
+parser.add_argument('--scale_dt_base', type=float, default=1.25, help='If not None dt is adjusted inversely proportional to the to the inflow peak. The given value of dt is assumed at scale_dt_base inflow.')
 parser.add_argument('--qoi', action='store_true', help='If set, calculate and save quantities of interest for the first simulation. Assumes that the mesh/inflow is that of DFG cylinder flow 2D-2 benchmark.')
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
-parser.add_argument("--dt", type=float, default=0.0005, help="Delta t.")
-parser.add_argument("--saveN", type=int, default=20, help="Every how many steps to save.")
-parser.add_argument("--steps", type=int, default=6020, help="Num of simulation steps.")
+parser.add_argument("--dt_sim", type=float, default=0.0005, help="Delta t.")
+parser.add_argument("--dt_real", type=float, default=0.01, help="Every how many steps to save.")
+parser.add_argument("--t", type=float, default=3.0, help="Num of simulation steps.")
 parser.add_argument('--dir', default="datasets/test", help='Path to where results are stored')
 parser.add_argument('--mesh', default=None, help='Path to mesh. May also be a folder containing meshes.')
 parser.add_argument('--mesh_range', default=None, help='Range of meshes to use. If None, all meshes are used.')
@@ -74,16 +75,6 @@ for sim, mesh_path in enumerate(mesh_paths):
     
     
     start = time.time()
-
-    # Setup parameters
-    num_steps = args.steps   # number of time steps
-    dt = args.dt # time step size
-    N_save = args.saveN #Every N-th time step is saved
-
-    #Default PDE parameters
-    mu = 0.001         # dynamic viscosity
-    rho = 1            # density
-    inflow_peak = 1.5 #Can be overwritten by if it is specified in Mesh's metadata
     
     # Create/Load mesh
     if mesh_path is not None:
@@ -105,13 +96,32 @@ for sim, mesh_path in enumerate(mesh_paths):
         mesh = generate_mesh(domain, 64)
         channel_width = 2.2
         channel_height = 0.41
+        inflow_peak = 1.5
         obstacle_condition = 'on_boundary && x[0]>0.1 && x[0]<0.3 && x[1]>0.1 && x[1]<0.3'
+
+    # Setup parameters
+    dt = (args.dt_sim * inflow_peak / args.scale_dt_base) if (args.scale_dt_base is not None) else args.dt_sim
+    po10 = 0
+    while (args.dt_real * 10 ** po10) % 1 != 0:
+        po10 += 1
+    divs = [i for i in range(1, (args.dt_real * 10 ** po10) + 1) if (args.dt_real * 10 ** po10) % i == 0]
+    for i in range(len(divs)):
+        if dt ** po10 > divs[i+1]:
+            dt = divs[i] / (10 ** po10)
+            break
+    N_save = args.dt_real // dt
+    num_steps = (args.t // dt) + N_save  # number of time steps
+
+    # Default PDE parameters
+    mu = 0.001  # dynamic viscosity
+    rho = 1  # density
 
     if args.vlevel > 0:
         print(f"Mesh: {mesh_path}",flush=True)
         print(f"{mesh.num_vertices()} vertices in mesh.",flush=True)
         print(f"Width: {channel_width}, Height: {channel_height}, Inflow peak: {inflow_peak}",flush=True)
         print(f"Obstacle condition: {obstacle_condition}",flush=True)
+        print(f"steps: {num_steps} dt: {dt}  saveN: {N_save}",flush=True)
     
     # Define function spaces
     V = VectorFunctionSpace(mesh, 'P', 2)
@@ -217,7 +227,7 @@ for sim, mesh_path in enumerate(mesh_paths):
             if args.vlevel > 0:
                 print(f"Error raised at time step {n} for mesh {mesh_path}.", flush=True)
             with open(os.path.join(results_dir, 'failed_meshes.txt'), 'a') as f:
-                f.write(mesh_path + ",")
+                f.write(mesh_path + "\n")
             error_raised = True
             break
     
@@ -260,6 +270,9 @@ for sim, mesh_path in enumerate(mesh_paths):
             os.remove(tut + ".h5")
         if os.path.exists(tpt + ".h5"):
             os.remove(tpt + ".h5")
+        del timeseries_p
+        del timeseries_u
+        gc.collect()
         continue
 
     if args.vlevel > 0:

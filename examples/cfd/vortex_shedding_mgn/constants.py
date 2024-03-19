@@ -23,8 +23,10 @@ class Constants(BaseModel):
     # data configs
     data_dir: str = "./raw_dataset/cylinder_flow/cylinder_flow"
     norm_data_dir: str = None #If set, take the edge/node normalization from this dir for inference
-    exp_name: str = "model"
+    load_name: str = "model"
+    save_name: str = "model"
     ckp: int = None #None loads the latest checkpoint, -1 initializes a new model
+    ckpt_path: str = "checkpoints"
 
     # training configs
     batch_size: int = 1
@@ -33,13 +35,12 @@ class Constants(BaseModel):
     num_training_samples: int = 400
     num_training_time_steps: int = 300
     lr: float = 0.0001
-    lr_decay_rate: float = 0.82540418526 #0.9999991
+    lr_decay_rate: float = 0.82540418526
+    fresh_optim: bool = False
     hidden_dim: int = 128
     num_input_features: int = 6
     num_output_features: int = 3
     num_edge_features: int = 3
-    ckpt_path: str = "checkpoints"
-    ckpt_name: str = "model"
     multi_hop_edges: dict = None # Possible keys: agg in {sum, concat, concat_sum} and weight of agg=sum
 
     # performance configs

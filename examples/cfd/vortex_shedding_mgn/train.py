@@ -44,7 +44,7 @@ class MGNTrainer:
             name="vortex_shedding_train",
             data_dir=C.data_dir,
             split="train",
-            start_step = C.first_step,
+            start_step=C.first_step,
             num_samples=C.num_training_samples,
             num_steps=C.num_training_time_steps,
             verbose=C.verbose
@@ -94,11 +94,11 @@ class MGNTrainer:
 
         # load checkpoint
         self.epoch_init = load_checkpoint(
-            os.path.join(C.ckpt_path, C.ckpt_name, "checkpoints"),
+            os.path.join(C.ckpt_path, C.load_name, "checkpoints"),
             models=self.model,
-            optimizer=self.optimizer,
-            scheduler=self.scheduler,
-            scaler=self.scaler,
+            optimizer=self.optimizer if not C.fresh_optim else None,
+            scheduler=self.scheduler if not C.fresh_optim else None,
+            scaler=self.scaler if not C.fresh_optim else None,
             device=C.device,
             epoch=C.ckp,
             verbose=C.verbose
@@ -160,7 +160,7 @@ def print_memory_info():
 def train(C: Constants):
 
     # save training constants to JSON file
-    log_path = os.path.join(C.ckpt_path, C.ckpt_name)
+    log_path = os.path.join(C.ckpt_path, C.save_name)
     os.makedirs(log_path, exist_ok=True)
     with open(
         os.path.join(log_path, "hyperparams.json"), "w"
@@ -173,7 +173,7 @@ def train(C: Constants):
 
     if C.verbose:
         print("Start training", flush=True)
-    for epoch in range(trainer.epoch_init, C.epochs):
+    for epoch in range(trainer.epoch_init, (C.fresh_optim + trainer.epoch_init) if C.fresh_optim else C.epochs):
         for i, graph in enumerate(trainer.dataloader):
             loss = trainer.train(graph)
             if i < 10 or (i % 10 == 0 and i < 100) or (i % 100 == 0 and i < 1000) or (i % 1000 == 0 and i < 10000) or i % 10000 == 0:

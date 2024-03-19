@@ -37,8 +37,9 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/merged", help='Path to the dataset relative to the folder vortex_shedding_mgn.')
-    parser.add_argument('--exp_name', default="model", help='Name of the experiment.')
+    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/cylinder_flow", help='Path to the dataset relative to the folder vortex_shedding_mgn.')
+    parser.add_argument('--load_name', default="model", help='Name of the model to load/init.')
+    parser.add_argument('--save_name', default="model", help='Name the model will be saved under.')
     parser.add_argument('--inter_eval', action='store_true', help='Does tiny intermediate evaluations after each epoch.')
     parser.add_argument('--ckp', type=int, help='Number of checkpoint to load. If none is set, the latest is taken. -1 any checkpoints are ignored.')
     parser.add_argument('--epochs', type=int, default=C.epochs, help='Number of epochs for training.')
@@ -50,7 +51,9 @@ if __name__ == "__main__":
     parser.add_argument('--num_inf_time_steps', type=int, default=C.num_test_time_steps, help='Number of time steps per simulation used for inference.')
     parser.add_argument('--multihop', default="none", help='Which multihop method to use. Choose from {none,sum,concat_sum,concat}.')
     parser.add_argument('--weight', type=float, default=0.5, help='The weight to be used for multihop if mode=sum is chosen.')
+    parser.add_argument('--lr_decay', type=float, default=0.82540418526, help='Learning rate decay.')
     parser.add_argument('--train', action='store_true', help='')
+    parser.add_argument('--fresh_optim', action='store_true', help='')
     parser.add_argument('--eval', action='store_true', help='')
     parser.add_argument('--verbose', action='store_true', help='')
     args = parser.parse_args()
@@ -61,15 +64,17 @@ if __name__ == "__main__":
     C.num_test_samples = args.num_inf_samples
     C.num_training_time_steps = args.num_time_steps
     C.ckp = args.ckp
+    C.lr_decay_rate = args.lr_decay
     C.first_step = args.first_step
     C.num_training_samples = args.num_samples
     C.epochs = args.epochs
     C.data_dir = args.data_dir
-    C.ckpt_name = args.exp_name
-    C.exp_name = args.exp_name
+    C.save_name = args.save_name
+    C.load_name = args.load_name
     C.data_dir = args.data_dir
     C.inter_eval = args.inter_eval
     C.hidden_dim = args.hidden
+    C.fresh_optim = args.fresh_optim
 
     if args.multihop != "none":
         C.multi_hop_edges = {"agg": args.multihop, "weight": args.weight}

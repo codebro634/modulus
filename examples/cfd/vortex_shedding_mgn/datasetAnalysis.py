@@ -14,8 +14,8 @@ TOL = 0.025
 parser = argparse.ArgumentParser()
 parser.add_argument("--graph_num", type=int, default=0, help="Number of simulation inside dataset to analyze.")
 parser.add_argument("--time_step", type=int, default=0, help="Number of time step to analyze.")
-parser.add_argument('--dataset', type=str, default = "raw_dataset/cylinder_flow/cylinder_flow/", help='Path to dataset.')
-parser.add_argument('--split', type=str, default = "train", help='Which split of the dataset to analyze.')
+parser.add_argument('--dataset', type=str, default="raw_dataset/cylinder_flow/cylinder_flow/", help='Path to dataset.')
+parser.add_argument('--split', type=str, default="train", help='Which split of the dataset to analyze.')
 args = parser.parse_args()
 
 graph_num = args.graph_num
@@ -91,6 +91,7 @@ print(f"Type 5 nodes: {len(type_5_nodes)}")
 print(f"Wall nodes: {len(wall_nodes)}")
 print(f"Object nodes: {len(object_nodes)}")
 print(f"Max inflow: {max_inflow}")
+print(f"Max flow of entire sim: {np.sqrt(np.max(simulation['velocity'][:,:,0] * simulation['velocity'][:,:,0] + simulation['velocity'][:,:,1] * simulation['velocity'][:,:,1]))}")
 print(f"Object middle ({np.mean(object_x)}, {np.mean(object_y)}), Diameter x: {np.max(object_x) - np.min(object_x)}, Diameter y: {np.max(object_y) - np.min(object_y)}")
 for node in type_4_nodes:
     print(f"Inflow {node[0]} -> {node[1]} | {node[2]}")

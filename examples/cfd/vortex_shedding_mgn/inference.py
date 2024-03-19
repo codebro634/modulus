@@ -80,7 +80,7 @@ class MGNRollout:
 
         # load checkpoint
         _ = load_checkpoint(
-            os.path.join(C.ckpt_path, C.ckpt_name, "checkpoints"),
+            os.path.join(C.ckpt_path, C.load_name, "checkpoints"),
             models=self.model,
             device=self.device,
             epoch=C.ckp,
@@ -231,7 +231,7 @@ class MGNRollout:
         tallstep /= num_steps
 
         result_dict = {
-                    f"Model {self.C.ckpt_name} checkpoint": self.C.ckp,
+                    f"Model {self.C.load_name} checkpoint": self.C.ckp,
                     "RMSE (velo) 1 step": rmse_1_step[0],
                     "RMSE (velo) 50 step": rmse_50_step[0],
                     "RMSE (velo) all step": rmse_all_step[0],
@@ -245,10 +245,10 @@ class MGNRollout:
 
         # Print and log results
         if inter_sim is None:
-            path = os.path.join(self.C.ckpt_path, self.C.ckpt_name)
+            path = os.path.join(self.C.ckpt_path, self.C.save_name)
             if not os.path.exists(path):
                 os.makedirs(path, exist_ok=True)
-            with open(os.path.join(self.C.ckpt_path, self.C.ckpt_name, "log.txt"), 'a') as file:
+            with open(os.path.join(self.C.ckpt_path, self.C.save_name, "log.txt"), 'a') as file:
                 for key, value in result_dict.items():
                     out_str = f"{key}: {value}"
                     file.write(out_str+"\n")
@@ -361,7 +361,7 @@ def evaluate_model(C: Constants, intermediate_eval: bool = False):
                     frames=len(rollout.graphs) // C.frame_skip,
                     interval=C.frame_interval,
                 )
-                ani.save(f"animations/{C.ckpt_name.split('.')[0]}_animation_" + C.viz_vars[i] + ".gif")
+                ani.save(f"animations/{C.save_name.split('.')[0]}_animation_" + C.viz_vars[i] + ".gif")
 
 """
     Evaluate each given model group on each given dataset.
@@ -384,7 +384,7 @@ def pairwise_evaluation(model_groups: list[list[str]|tuple[list[str],str]], data
                 C.norm_data_dir = None
             result_sum = {}
             for model in model_group:
-                C.exp_name, C.ckpt_name = model, model
+                C.load_name = model
                 res_dict = evaluate_model(C, intermediate_eval=False)
                 for key, value in res_dict.items():
                     if key not in result_sum:
@@ -393,7 +393,7 @@ def pairwise_evaluation(model_groups: list[list[str]|tuple[list[str],str]], data
                         result_sum[key] += [value]
 
             #Print results
-            print(f"-------{C.exp_name} --> {C.data_dir}----------")
+            print(f"-------{C.load_name} --> {C.data_dir}----------")
             for key, value in result_sum.items():
                 print(f"{key} | Min:{min(value)} Max:{max(value)} Avg:{sum(value)/len(value)}")
 
