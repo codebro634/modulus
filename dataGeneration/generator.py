@@ -22,13 +22,13 @@ parser.add_argument("--num_frames", type=int, default=0,
 parser.add_argument('--dont_save', action='store_true',
                     help='If set, the simulation results are NOT saved and simply discarded.')
 parser.add_argument('--scale_dt_base', type=float, default=1.25,
-                    help='If not None dt_sim is adjusted inversely proportional to the to the inflow peak. The given value of dt_real is assumed at scale_dt_base inflow.')
+                    help='If not None, `dt_sim` is adjusted inversely proportional to the inflow peak such that dt_sim_adjusted = dt_sim * min(1,scale_dt_base / inflow_peak).')
 parser.add_argument('--qoi', action='store_true',
                     help='If set, calculate and save quantities of interest for the first simulation. Assumes that the mesh/inflow is that of DFG cylinder flow 2D-2 benchmark.')
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
 parser.add_argument("--dt_sim", type=float, default=0.0005, help="Delta t that is used for calculation.")
 parser.add_argument("--dt_real", type=float, default=0.01, help="Delta t in the final dataset.")
-parser.add_argument("--t", type=float, default=3.0, help="Second till which flow is simulated.")
+parser.add_argument("--t", type=float, default=3.0, help="Second til which flow is simulated.")
 parser.add_argument('--dir', default="datasets/test", help='Path to where results are stored')
 parser.add_argument('--mesh', default=None, help='Path to mesh. May also be a folder containing meshes.')
 parser.add_argument('--mesh_range', default=None, help='Range of meshes to use. If None, all meshes are used.')
@@ -113,7 +113,10 @@ for sim, mesh_path in enumerate(mesh_paths):
         if dt * 10 ** po10 < divs[i + 1]:
             dt = divs[i] / (10 ** po10)
             break
+
     N_save = int(args.dt_real / dt)
+    assert N_save * dt == args.dt_real
+    assert math.ceil(args.t / dt) * dt == args.t
     num_steps = math.ceil(args.t / dt) + N_save  # number of time steps
 
     # Default PDE parameters
