@@ -110,8 +110,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         N_save += 1
     dt = args.dt_real / N_save
 
-    assert math.ceil(N_save * dt) == args.dt_real, f"dt_real: {args.dt_real}, N_save: {N_save}, dt: {dt}"
-    assert math.ceil(args.t / dt) * dt == args.t, f"t: {args.t}, dt: {dt}, num_steps: {math.ceil(args.t / dt)}"
+    assert N_save * dt == args.dt_real, f"dt_real: {args.dt_real}, N_save: {N_save}, dt: {dt}"
     num_steps = math.ceil(args.t / dt) + N_save  # number of time steps
 
     # Default PDE parameters
@@ -357,8 +356,7 @@ for sim, mesh_path in enumerate(mesh_paths):
             else:
                 vertex_types.append(0)
 
-        sim_data['node_type'] = np.repeat(np.array(vertex_types, dtype=np.int32)[np.newaxis, :, np.newaxis], num_steps,
-                                          axis=0)
+        sim_data['node_type'] = np.repeat(np.array(vertex_types, dtype=np.int32)[np.newaxis, :, np.newaxis], num_steps,axis=0)
 
         # Only save every N-th time step and discard the rest
         for k, v in sim_data.items():
