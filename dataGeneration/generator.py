@@ -105,18 +105,13 @@ for sim, mesh_path in enumerate(mesh_paths):
 
     # Setup parameters
     dt = (args.dt_sim * min(1, args.scale_dt_base / inflow_peak)) if (args.scale_dt_base is not None) else args.dt_sim
-    po10 = 0
-    while (args.dt_sim * 10 ** po10) % 1 != 0:
-        po10 += 1
-    divs = [i for i in range(1, int(args.dt_real * 10 ** po10) + 1) if int(args.dt_real * 10 ** po10) % i == 0]
-    for i in range(len(divs)):
-        if dt * 10 ** po10 < divs[i + 1]:
-            dt = divs[i] / (10 ** po10)
-            break
+    N_save = 1
+    while N_save * dt < args.dt_real:
+        N_save += 1
+    dt = args.dt_real / N_save
 
-    N_save = int(args.dt_real / dt)
-    assert N_save * dt == args.dt_real
-    assert math.ceil(args.t / dt) * dt == args.t
+    assert math.ceil(N_save * dt) == args.dt_real, f"dt_real: {args.dt_real}, N_save: {N_save}, dt: {dt}"
+    assert math.ceil(args.t / dt) * dt == args.t, f"t: {args.t}, dt: {dt}, num_steps: {math.ceil(args.t / dt)}"
     num_steps = math.ceil(args.t / dt) + N_save  # number of time steps
 
     # Default PDE parameters
