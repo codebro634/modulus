@@ -17,18 +17,23 @@ import gc
 """
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--num_frames",type=int, default=0, help="If > 0, save animation of simulation as gif with num_frames frames.")
-parser.add_argument('--dont_save', action='store_true', help='If set, the simulation results are NOT saved and simply discarded.')
-parser.add_argument('--scale_dt_base', type=float, default=1.25, help='If not None dt is adjusted inversely proportional to the to the inflow peak. The given value of dt is assumed at scale_dt_base inflow.')
-parser.add_argument('--qoi', action='store_true', help='If set, calculate and save quantities of interest for the first simulation. Assumes that the mesh/inflow is that of DFG cylinder flow 2D-2 benchmark.')
+parser.add_argument("--num_frames", type=int, default=0,
+                    help="If > 0, save animation of simulation as gif with num_frames frames.")
+parser.add_argument('--dont_save', action='store_true',
+                    help='If set, the simulation results are NOT saved and simply discarded.')
+parser.add_argument('--scale_dt_base', type=float, default=1.25,
+                    help='If not None dt_sim is adjusted inversely proportional to the to the inflow peak. The given value of dt_real is assumed at scale_dt_base inflow.')
+parser.add_argument('--qoi', action='store_true',
+                    help='If set, calculate and save quantities of interest for the first simulation. Assumes that the mesh/inflow is that of DFG cylinder flow 2D-2 benchmark.')
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
-parser.add_argument("--dt_sim", type=float, default=0.0005, help="Delta t.")
-parser.add_argument("--dt_real", type=float, default=0.01, help="Every how many steps to save.")
-parser.add_argument("--t", type=float, default=3.0, help="Num of simulation steps.")
+parser.add_argument("--dt_sim", type=float, default=0.0005, help="Delta t that is used for calculation.")
+parser.add_argument("--dt_real", type=float, default=0.01, help="Delta t in the final dataset.")
+parser.add_argument("--t", type=float, default=3.0, help="Second till which flow is simulated.")
 parser.add_argument('--dir', default="datasets/test", help='Path to where results are stored')
 parser.add_argument('--mesh', default=None, help='Path to mesh. May also be a folder containing meshes.')
 parser.add_argument('--mesh_range', default=None, help='Range of meshes to use. If None, all meshes are used.')
-parser.add_argument("--cleanup_dir", default=None, help="Recursively searches through and reruns all erroneous simulations.")
+parser.add_argument("--cleanup_dir", default=None,
+                    help="Recursively searches through and reruns all erroneous simulations.")
 args = parser.parse_args()
 
 results_dir = args.dir
@@ -61,21 +66,20 @@ if args.mesh_range is not None:
     assert end > start
     mesh_paths = mesh_paths[start:end]
 
-sims_data = [] #One entry for each simulation
+sims_data = []  # One entry for each simulation
 num_frames = args.num_frames
-t_thrs = 25.0 #Only needed when quantities of interest are calculated
+t_thrs = 25.0  # Only needed when quantities of interest are calculated
 
-mesh_paths.sort() #lexicographical iteration
+mesh_paths.sort()  # lexicographical iteration
 for sim, mesh_path in enumerate(mesh_paths):
 
-    if num_frames > 0 and sim==0:
-        plot_path = os.path.join(results_dir,"animation")
+    if num_frames > 0 and sim == 0:
+        plot_path = os.path.join(results_dir, "animation")
         if not os.path.exists(plot_path):
-            os.makedirs(plot_path,exist_ok=True)
-    
-    
+            os.makedirs(plot_path, exist_ok=True)
+
     start = time.time()
-    
+
     # Create/Load mesh
     if mesh_path is not None:
         mesh = Mesh()
@@ -100,42 +104,42 @@ for sim, mesh_path in enumerate(mesh_paths):
         obstacle_condition = 'on_boundary && x[0]>0.1 && x[0]<0.3 && x[1]>0.1 && x[1]<0.3'
 
     # Setup parameters
-    dt = (args.dt_sim * inflow_peak / args.scale_dt_base) if (args.scale_dt_base is not None) else args.dt_sim
+    dt = (args.dt_sim * min(1, args.scale_dt_base / inflow_peak)) if (args.scale_dt_base is not None) else args.dt_sim
     po10 = 0
-    while (args.dt_real * 10 ** po10) % 1 != 0:
+    while (args.dt_sim * 10 ** po10) % 1 != 0:
         po10 += 1
-    divs = [i for i in range(1, (args.dt_real * 10 ** po10) + 1) if (args.dt_real * 10 ** po10) % i == 0]
+    divs = [i for i in range(1, int(args.dt_real * 10 ** po10) + 1) if int(args.dt_real * 10 ** po10) % i == 0]
     for i in range(len(divs)):
-        if dt ** po10 > divs[i+1]:
+        if dt * 10 ** po10 < divs[i + 1]:
             dt = divs[i] / (10 ** po10)
             break
-    N_save = args.dt_real // dt
-    num_steps = (args.t // dt) + N_save  # number of time steps
+    N_save = int(args.dt_real / dt)
+    num_steps = math.ceil(args.t / dt) + N_save  # number of time steps
 
     # Default PDE parameters
     mu = 0.001  # dynamic viscosity
     rho = 1  # density
 
     if args.vlevel > 0:
-        print(f"Mesh: {mesh_path}",flush=True)
-        print(f"{mesh.num_vertices()} vertices in mesh.",flush=True)
-        print(f"Width: {channel_width}, Height: {channel_height}, Inflow peak: {inflow_peak}",flush=True)
-        print(f"Obstacle condition: {obstacle_condition}",flush=True)
-        print(f"steps: {num_steps} dt: {dt}  saveN: {N_save}",flush=True)
-    
+        print(f"Mesh: {mesh_path}", flush=True)
+        print(f"{mesh.num_vertices()} vertices in mesh.", flush=True)
+        print(f"Width: {channel_width}, Height: {channel_height}, Inflow peak: {inflow_peak}", flush=True)
+        print(f"Obstacle condition: {obstacle_condition}", flush=True)
+        print(f"steps: {num_steps} dt: {dt}  saveN: {N_save}", flush=True)
+
     # Define function spaces
     V = VectorFunctionSpace(mesh, 'P', 2)
     Q = FunctionSpace(mesh, 'P', 1)
-    
+
     # Define boundaries
-    inflow   = 'near(x[0], 0)'
-    outflow  = f'near(x[0], {channel_width})'
-    walls    = f'near(x[1], 0) || near(x[1], {channel_height})'
+    inflow = 'near(x[0], 0)'
+    outflow = f'near(x[0], {channel_width})'
+    walls = f'near(x[1], 0) || near(x[1], {channel_height})'
     obstacle = obstacle_condition
-    
+
     # Define inflow profile
     inflow_profile = (f'4.0*{inflow_peak}*x[1]*({channel_height} - x[1]) / pow({channel_height}, 2)', '0')
-    
+
     # Define boundary conditions
     bcu_inflow = DirichletBC(V, Expression(inflow_profile, degree=2), inflow)
     bcu_walls = DirichletBC(V, Constant((0, 0)), walls)
@@ -143,69 +147,73 @@ for sim, mesh_path in enumerate(mesh_paths):
     bcp_outflow = DirichletBC(Q, Constant(0), outflow)
     bcu = [bcu_inflow, bcu_walls, bcu_cylinder]
     bcp = [bcp_outflow]
-    
+
     # Define trial and test functions
     u = TrialFunction(V)
     v = TestFunction(V)
     p = TrialFunction(Q)
     q = TestFunction(Q)
-    
+
     # Define functions for solutions at previous and current time steps
     u_n = Function(V)
-    u_  = Function(V)
+    u_ = Function(V)
     p_n = Function(Q)
-    p_  = Function(Q)
-    
+    p_ = Function(Q)
+
     # Define expressions used in variational forms
-    U  = 0.5*(u_n + u)
-    n  = FacetNormal(mesh)
-    f  = Constant((0, 0))
-    k  = Constant(dt)
+    U = 0.5 * (u_n + u)
+    n = FacetNormal(mesh)
+    f = Constant((0, 0))
+    k = Constant(dt)
     mu = Constant(mu)
     rho = Constant(rho)
-    
+
+
     # Define symmetric gradient
     def epsilon(u):
         return sym(nabla_grad(u))
-    
+
+
     # Define stress tensor
     def sigma(u, p):
-        return 2*mu*epsilon(u) - p*Identity(len(u))
-    
+        return 2 * mu * epsilon(u) - p * Identity(len(u))
+
+
     # Define variational problem for step 1
-    F1 = rho*dot((u - u_n) / k, v)*dx + rho*dot(dot(u_n, nabla_grad(u_n)), v)*dx + inner(sigma(U, p_n), epsilon(v))*dx + dot(p_n*n, v)*ds - dot(mu*nabla_grad(U)*n, v)*ds - dot(f, v)*dx
+    F1 = rho * dot((u - u_n) / k, v) * dx + rho * dot(dot(u_n, nabla_grad(u_n)), v) * dx + inner(sigma(U, p_n),
+                                                                                                 epsilon(v)) * dx + dot(
+        p_n * n, v) * ds - dot(mu * nabla_grad(U) * n, v) * ds - dot(f, v) * dx
     a1 = lhs(F1)
     L1 = rhs(F1)
-    
+
     # Define variational problem for step 2
-    a2 = dot(nabla_grad(p), nabla_grad(q))*dx
-    L2 = dot(nabla_grad(p_n), nabla_grad(q))*dx - (1/k)*div(u_)*q*dx
-    
+    a2 = dot(nabla_grad(p), nabla_grad(q)) * dx
+    L2 = dot(nabla_grad(p_n), nabla_grad(q)) * dx - (1 / k) * div(u_) * q * dx
+
     # Define variational problem for step 3
-    a3 = dot(u, v)*dx
-    L3 = dot(u_, v)*dx - k*dot(nabla_grad(p_ - p_n), v)*dx
-    
+    a3 = dot(u, v) * dx
+    L3 = dot(u_, v) * dx - k * dot(nabla_grad(p_ - p_n), v) * dx
+
     # Assemble matrices
     A1 = assemble(a1)
     A2 = assemble(a2)
     A3 = assemble(a3)
-    
+
     # Apply boundary conditions to matrices
     [bc.apply(A1) for bc in bcu]
     [bc.apply(A2) for bc in bcp]
-    
-    
+
     # Create time series
-    tut,tpt = os.path.join(results_dir, 'tmp1'), os.path.join(results_dir,'tmp2')
+    tut, tpt = os.path.join(results_dir, 'tmp1'), os.path.join(results_dir, 'tmp2')
     timeseries_u = TimeSeries(tut)
     timeseries_p = TimeSeries(tpt)
-    
+
     # Time-stepping
     t = 0
-    image_v_locs, image_p_locs, error_raised = [],[], False
-    
-    for n in range(num_steps): #num_steps
-    
+    image_v_locs, image_p_locs, error_raised = [], [], False
+
+    for n in range(num_steps):  # num_steps
+
         # Update current time
         t += dt
 
@@ -230,40 +238,39 @@ for sim, mesh_path in enumerate(mesh_paths):
                 f.write(mesh_path + "\n")
             error_raised = True
             break
-    
+
         # Plot solution
         if num_frames > 0 and n % max(num_steps // num_frames, 1) == 0 and sim == 0:
-            title=f"velocity{n}"
+            title = f"velocity{n}"
             plot(u_, title=title)
-            plt.savefig(os.path.join(plot_path,title+".png"))
-            image_v_locs.append(os.path.join(plot_path,title+".png"))
-    
-            title = f"pressure{n}"
-            plot(p_,title=title)
-            plt.savefig(os.path.join(plot_path,title+".png"))
-            image_p_locs.append(os.path.join(plot_path,title+".png"))
+            plt.savefig(os.path.join(plot_path, title + ".png"))
+            image_v_locs.append(os.path.join(plot_path, title + ".png"))
 
+            title = f"pressure{n}"
+            plot(p_, title=title)
+            plt.savefig(os.path.join(plot_path, title + ".png"))
+            image_p_locs.append(os.path.join(plot_path, title + ".png"))
 
         # Save nodal values to file
         if (not args.dont_save) or (t >= t_thrs and args.qoi):  # Second condition applies only for benchmark
             timeseries_u.store(u_.vector(), t)
             timeseries_p.store(p_.vector(), t)
-    
+
         # Update previous solution
         u_n.assign(u_)
         p_n.assign(p_)
-    
+
         # Print progress
         progress_str = None
         if args.vlevel == 2:
-            progress_str = f"Progress {n/num_steps} in simulation {sim}/{len(mesh_paths)}"
-        elif args.vlevel == 1 and n%100 == 0:
-            progress_str = f"Progress {n/num_steps} in simulation {sim}/{len(mesh_paths)}"
+            progress_str = f"Progress {n / num_steps} in simulation {sim}/{len(mesh_paths)}"
+        elif args.vlevel == 1 and n % 100 == 0:
+            progress_str = f"Progress {n / num_steps} in simulation {sim}/{len(mesh_paths)}"
 
         if progress_str is not None:
-            print(progress_str,flush=True)
+            print(progress_str, flush=True)
             with open(os.path.join(results_dir, 'progress.txt'), 'a') as f:
-                f.write(progress_str+"\n")
+                f.write(progress_str + "\n")
 
     if error_raised:
         if os.path.exists(tut + ".h5"):
@@ -276,58 +283,58 @@ for sim, mesh_path in enumerate(mesh_paths):
         continue
 
     if args.vlevel > 0:
-        print(f"Duration: {round(time.time() -  start,3)}s",flush=True)
-    
-    #Create animation
+        print(f"Duration: {round(time.time() - start, 3)}s", flush=True)
+
+    # Create animation
     if num_frames > 0 and sim == 0:
-        duration = (num_steps // num_frames) * dt / 4 #Divided by 4 to have a bit of slow-motion
-        with imageio.get_writer(os.path.join(plot_path,'velocity.gif'), mode='I', duration=duration) as writer:
+        duration = (num_steps // num_frames) * dt / 4  # Divided by 4 to have a bit of slow-motion
+        with imageio.get_writer(os.path.join(plot_path, 'velocity.gif'), mode='I', duration=duration) as writer:
             for image in image_v_locs:
                 img = imageio.imread(image)
                 writer.append_data(img)
-    
+
         for image in image_v_locs:
             os.remove(image)
-    
-        with imageio.get_writer(os.path.join(plot_path,'pressure.gif'), mode='I', duration=duration) as writer:
+
+        with imageio.get_writer(os.path.join(plot_path, 'pressure.gif'), mode='I', duration=duration) as writer:
             for image in image_p_locs:
                 img = imageio.imread(image)
                 writer.append_data(img)
-    
+
         for image in image_p_locs:
             os.remove(image)
-    
-    
+
     """Extract data in numpy format from the simulation"""
     if not args.dont_save:
         n = mesh.num_vertices()
         sim_data = dict()
 
-        #Extract velocities
-        velocity = np.zeros(shape=(num_steps, n, 2),dtype=np.float32)
+        # Extract velocities
+        velocity = np.zeros(shape=(num_steps, n, 2), dtype=np.float32)
         times_v = timeseries_u.vector_times()
-        for i,t in enumerate(times_v):
-            timeseries_u.retrieve(u_.vector(),t)
-            x = u_.compute_vertex_values(mesh) #The same as calling u_ at the coordinates of each vertex
-            velo_t = np.concatenate( (x[0:n,np.newaxis],x[n:,np.newaxis]), axis=-1)
+        for i, t in enumerate(times_v):
+            timeseries_u.retrieve(u_.vector(), t)
+            x = u_.compute_vertex_values(mesh)  # The same as calling u_ at the coordinates of each vertex
+            velo_t = np.concatenate((x[0:n, np.newaxis], x[n:, np.newaxis]), axis=-1)
             velocity[i] = velo_t
         sim_data['velocity'] = velocity
 
-        #Extract pressure values
-        pressure = np.zeros(shape=(num_steps,n,1),dtype=np.float32)
+        # Extract pressure values
+        pressure = np.zeros(shape=(num_steps, n, 1), dtype=np.float32)
         times_p = timeseries_p.vector_times()
-        for i,t in enumerate(times_p):
-            timeseries_p.retrieve(p_.vector(),t)
+        for i, t in enumerate(times_p):
+            timeseries_p.retrieve(p_.vector(), t)
             x = p_.compute_vertex_values(mesh)
-            pressure[i] = x[:,np.newaxis]
+            pressure[i] = x[:, np.newaxis]
         sim_data['pressure'] = pressure
 
-        #Extract mesh graph data
-        sim_data['cells'] = np.repeat(np.array(list(mesh.cells()),dtype=np.int32)[np.newaxis,...],num_steps,axis=0)
-        sim_data['mesh_pos'] = np.repeat(np.array(list(mesh.coordinates()),dtype=np.float32)[np.newaxis,...],num_steps,axis=0)
+        # Extract mesh graph data
+        sim_data['cells'] = np.repeat(np.array(list(mesh.cells()), dtype=np.int32)[np.newaxis, ...], num_steps, axis=0)
+        sim_data['mesh_pos'] = np.repeat(np.array(list(mesh.coordinates()), dtype=np.float32)[np.newaxis, ...],
+                                         num_steps, axis=0)
 
 
-        def get_vertices_with_cond(mesh, condition): #From https://fenicsproject.org/qa/2989/vertex-on-mesh-boundary/
+        def get_vertices_with_cond(mesh, condition):  # From https://fenicsproject.org/qa/2989/vertex-on-mesh-boundary/
             V = FunctionSpace(mesh, 'CG', 1)
             bc = DirichletBC(V, 1, condition)
             u = Function(V)
@@ -336,11 +343,14 @@ for sim, mesh_path in enumerate(mesh_paths):
             vertices_on_boundary = d2v[u.vector() == 1.0]
             return vertices_on_boundary
 
-        #Extract node types
+
+        # Extract node types
         vertex_types = []
-        v_inflow, v_outflow, v_walls, v_cylinder  = get_vertices_with_cond(mesh,inflow), get_vertices_with_cond(mesh,outflow), get_vertices_with_cond(mesh,walls), get_vertices_with_cond(mesh, obstacle)
+        v_inflow, v_outflow, v_walls, v_cylinder = get_vertices_with_cond(mesh, inflow), get_vertices_with_cond(mesh,
+                                                                                                                outflow), get_vertices_with_cond(
+            mesh, walls), get_vertices_with_cond(mesh, obstacle)
         for v in range(mesh.num_vertices()):
-            if v in v_inflow and not v in v_walls: #As in deepminds dataset, the four corners are considered boundaries
+            if v in v_inflow and not v in v_walls:  # As in deepminds dataset, the four corners are considered boundaries
                 vertex_types.append(4)
             elif v in v_outflow and not v in v_walls:
                 vertex_types.append(5)
@@ -349,22 +359,23 @@ for sim, mesh_path in enumerate(mesh_paths):
             else:
                 vertex_types.append(0)
 
-        sim_data['node_type'] = np.repeat(np.array(vertex_types,dtype=np.int32)[np.newaxis,:,np.newaxis],num_steps,axis=0)
+        sim_data['node_type'] = np.repeat(np.array(vertex_types, dtype=np.int32)[np.newaxis, :, np.newaxis], num_steps,
+                                          axis=0)
 
-        #Only save every N-th time step and discard the rest
+        # Only save every N-th time step and discard the rest
         for k, v in sim_data.items():
-            sim_data[k] = sim_data[k][(N_save-1)::N_save] #Skip first data points to avoid initial chaos phase
+            sim_data[k] = sim_data[k][(N_save - 1)::N_save]  # Skip first data points to avoid initial chaos phase
 
         sims_data.append(sim_data)
 
-    #Calculate quantities of interest (for benchmark only)
+    # Calculate quantities of interest (for benchmark only)
     if sim == 0 and args.qoi:
 
         times_v = timeseries_u.vector_times()
         times_p = timeseries_p.vector_times()
 
         if args.vlevel > 0:
-            print("Calculating quantities of interest",flush=True)
+            print("Calculating quantities of interest", flush=True)
 
         num_points = 64
         cpoints = [(0.2 + 0.05 * np.cos(2 * np.pi * k / num_points), 0.2 + 0.05 * np.sin(2 * np.pi * k / num_points))
@@ -381,7 +392,7 @@ for sim, mesh_path in enumerate(mesh_paths):
             ny /= length
             normal_vecs.append((nx, ny))
 
-        dp,cd,cl = [], [], []
+        dp, cd, cl = [], [], []
         times = []
         for j in range(len(times_v)):
             if j % N_save != 0 or times_v[j] < t_thrs:
@@ -389,7 +400,7 @@ for sim, mesh_path in enumerate(mesh_paths):
             assert times_v[j] == times_p[j]
 
             if (args.vlevel > 0 and j % 10 == 0) or args.vlevel > 1:
-                print(f"Progress: {j/N_save}/{len(times_v)//N_save}", flush=True)
+                print(f"Progress: {j / N_save}/{len(times_v) // N_save}", flush=True)
 
             times.append(times_v[j])
             timeseries_u.retrieve(u_.vector(), times_v[j])
@@ -403,12 +414,12 @@ for sim, mesh_path in enumerate(mesh_paths):
                 fd += vec[0]
                 fl += vec[1]
 
-            fd *= (0.1*math.pi)/num_points
-            fl *= (0.1*math.pi)/num_points
+            fd *= (0.1 * math.pi) / num_points
+            fl *= (0.1 * math.pi) / num_points
             cd_ = 2 * fd / 0.1
             cl_ = 2 * fl / 0.1
 
-            deltaP = p_((0.15,0.2)) - p_(0.25,0.2)
+            deltaP = p_((0.15, 0.2)) - p_(0.25, 0.2)
 
             dp.append(deltaP)
             cd.append(cd_)
@@ -418,7 +429,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         cd = np.array(cd)
         cl = np.array(cl)
 
-        #Get frequency of lift coefficient peaks
+        # Get frequency of lift coefficient peaks
         max_idx = np.argmax(cl)
         past_peak_idx = None
         for i in range(max_idx, len(cl)):
@@ -433,20 +444,22 @@ for sim, mesh_path in enumerate(mesh_paths):
         lift_coef = np.max(cl)
         max_delta_p = np.max(dp)
 
-        print(f"Frequency: {frequency} Strouhal number: {strouhal}, Drag coefficient: {drag_coef}, Lift coefficient: {lift_coef}, Max delta P: {max_delta_p}",flush=True)
+        print(
+            f"Frequency: {frequency} Strouhal number: {strouhal}, Drag coefficient: {drag_coef}, Lift coefficient: {lift_coef}, Max delta P: {max_delta_p}",
+            flush=True)
 
-        #Save arrays as human readable format
-        np.savetxt(results_dir + "/drag_coefficient.txt",cd,delimiter=',',fmt="%s")
-        np.savetxt(results_dir + "/lift_coefficient.txt",cl,delimiter=',',fmt="%s")
-        np.savetxt(results_dir + "/delta_p.txt",dp,delimiter=',',fmt="%s")
-        np.savetxt(results_dir + "/times.txt",times,delimiter=',',fmt="%s")
+        # Save arrays as human readable format
+        np.savetxt(results_dir + "/drag_coefficient.txt", cd, delimiter=',', fmt="%s")
+        np.savetxt(results_dir + "/lift_coefficient.txt", cl, delimiter=',', fmt="%s")
+        np.savetxt(results_dir + "/delta_p.txt", dp, delimiter=',', fmt="%s")
+        np.savetxt(results_dir + "/times.txt", times, delimiter=',', fmt="%s")
 
-    #Memory cleanup
+    # Memory cleanup
     os.remove(tut + ".h5")
     os.remove(tpt + ".h5")
     del timeseries_p
     del timeseries_u
-    if (sim+1) % 10 == 0:
+    if (sim + 1) % 10 == 0:
         if not args.dont_save:
             offset = 0 if args.mesh_range is None else int(args.mesh_range.split(',')[0])
             np.save(results_dir + f"/simdata{sim - 9 + offset}_{sim + offset}.npy", sims_data)
@@ -455,7 +468,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     if args.vlevel > 0:
         print(f"Used Memory: {psutil.virtual_memory().used / 1024 ** 2} MB")
 
-#Save remaining simulations
+# Save remaining simulations
 if len(sims_data) > 0 and (not args.dont_save):
     np.save(results_dir + f"/simdata_rest.npy", sims_data)
 
