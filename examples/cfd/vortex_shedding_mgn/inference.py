@@ -289,8 +289,10 @@ class MGNRollout:
             self.faces_i[num],
         )
 
-        vmin = -0.1
-        vmax = 3.0
+        vmin = min([np.min(x.numpy()) for x in self.pred_i] + [np.min(x.numpy()) for x in self.exact_i])
+        vmax = max([np.max(x.numpy()) for x in self.pred_i] + [np.max(x.numpy()) for x in self.exact_i])
+        #vmin = -0.1
+        #vmax = 3.0
         #vmin = np.min([np.min(y_star), np.min(y_exact)])
         #vmin = math.ceil(abs(vmin)) * ((-1) if vmin < 0 else 1)
         #vmax = np.max([np.max(y_star), np.max(y_exact)])
