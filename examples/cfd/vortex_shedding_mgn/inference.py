@@ -262,9 +262,11 @@ class MGNRollout:
         return result_dict
 
 
-    def init_animation(self, idx):
-        self.pred_i = [var[:, idx] for var in self.pred]
-        self.exact_i = [var[:, idx] for var in self.exact]
+    def init_animation(self, idx, start, end):
+        self.pred_i = [var[:, idx] for var in self.pred[start:end]]
+        self.exact_i = [var[:, idx] for var in self.exact[start:end]]
+        self.graphs_i = self.graphs[start:end]
+        self.faces_i = self.faces[start:end]
 
         # fig configs
         plt.rcParams["image.cmap"] = "inferno"
@@ -275,25 +277,23 @@ class MGNRollout:
         self.ax[0].set_facecolor("white")
         self.ax[1].set_facecolor("white")
 
-        # make animations dir
-        if not os.path.exists("./animations"):
-            os.makedirs("./animations")
-
     def animate(self, num):
 
         num *= self.C.frame_skip
-        graph = self.graphs[num]
+        graph = self.graphs_i[num]
         y_star = self.pred_i[num].numpy()
         y_exact = self.exact_i[num].numpy()
         triang = mtri.Triangulation(
             graph.ndata["mesh_pos"][:, 0].numpy(),
             graph.ndata["mesh_pos"][:, 1].numpy(),
-            self.faces[num],
+            self.faces_i[num],
         )
 
-        vmin = np.min([np.min(y_star), np.min(y_exact)])
+        vmin = -0.1
+        vmax = 3.0
+        #vmin = np.min([np.min(y_star), np.min(y_exact)])
         #vmin = math.ceil(abs(vmin)) * ((-1) if vmin < 0 else 1)
-        vmax = np.max([np.max(y_star), np.max(y_exact)])
+        #vmax = np.max([np.max(y_star), np.max(y_exact)])
         #vmax = math.ceil(abs(vmax)) * ((-1) if vmax < 0 else 1)
 
         self.ax[0].cla()
@@ -352,16 +352,22 @@ def evaluate_model(C: Constants, intermediate_eval: bool = False):
 
         #Animate model's predictions on all test graphs
         if C.animate:
+            path = f"animations/{C.save_name.split('.')[0]}"
+            os.makedirs(path, exist_ok=True)
             idx = [rollout.var_identifier[k] for k in C.viz_vars]
             for i in idx:
-                rollout.init_animation(i)
-                ani = animation.FuncAnimation(
-                    rollout.fig,
-                    rollout.animate,
-                    frames=len(rollout.graphs) // C.frame_skip,
-                    interval=C.frame_interval,
-                )
-                ani.save(f"animations/{C.save_name.split('.')[0]}_animation_" + C.viz_vars[i] + ".gif")
+                var_path = f"{path}/{C.viz_vars[i]}"
+                os.makedirs(var_path, exist_ok=True)
+                for j in range(C.num_test_samples):
+                    rollout.init_animation(idx=i, start=j * (C.num_test_time_steps-1), end=(j + 1) * (C.num_test_time_steps-1))
+                    ani = animation.FuncAnimation(
+                        rollout.fig,
+                        rollout.animate,
+                        frames= (C.num_test_time_steps-1) // C.frame_skip,
+                        interval=C.frame_interval,
+                    )
+                    ani_path = f"{var_path}/sim{j}.gif"
+                    ani.save(ani_path)
 
 """
     Evaluate each given model group on each given dataset.

@@ -65,6 +65,9 @@ if args.mesh_range is not None:
     start, end = int(start), int(end)
     assert end > start
     mesh_paths = mesh_paths[start:end]
+    offset = start
+else:
+    offset = 0
 
 sims_data = []  # One entry for each simulation
 num_frames = args.num_frames
@@ -111,7 +114,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     dt = args.dt_real / N_save
 
     assert N_save * dt == args.dt_real, f"dt_real: {args.dt_real}, N_save: {N_save}, dt: {dt}"
-    num_steps = math.ceil( (args.t * N_save) / args.dt_real) + N_save  # number of time steps
+    num_steps = math.ceil( (args.t * N_save) / args.dt_real) # number of time steps
 
     # Default PDE parameters
     mu = 0.001  # dynamic viscosity
@@ -260,9 +263,9 @@ for sim, mesh_path in enumerate(mesh_paths):
         # Print progress
         progress_str = None
         if args.vlevel == 2:
-            progress_str = f"Progress {n / num_steps} in simulation {sim+1}/{len(mesh_paths)}"
+            progress_str = f"Progress {n / num_steps} in simulation {sim+1+offset}/{len(mesh_paths)+offset}"
         elif args.vlevel == 1 and n % 100 == 0:
-            progress_str = f"Progress {n / num_steps} in simulation {sim+1}/{len(mesh_paths)}"
+            progress_str = f"Progress {n / num_steps} in simulation {sim+1+offset}/{len(mesh_paths)+offset}"
 
         if progress_str is not None:
             print(progress_str, flush=True)
@@ -457,7 +460,6 @@ for sim, mesh_path in enumerate(mesh_paths):
     del timeseries_u
     if (sim + 1) % 10 == 0:
         if not args.dont_save:
-            offset = 0 if args.mesh_range is None else int(args.mesh_range.split(',')[0])
             np.save(results_dir + f"/simdata{sim - 9 + offset}_{sim + offset}.npy", sims_data)
         sims_data = []
     gc.collect()

@@ -48,13 +48,16 @@ class Constants(BaseModel):
     amp: bool = False
     jit: bool = False
 
-    # test & visualization configs
-    animate: bool = True
-    verbose: bool = True
+    # test configs
     inter_eval: bool = False #Whether or not to do a mini-evaluation after each epoch
     num_test_samples: int = 40
     num_test_time_steps: int = 300
+
+    # animate configs
+    animate: bool = True
     viz_vars: Tuple[str, ...] = ("u", "v", "p")
     frame_skip: int = 10
     frame_interval: int = 1
 
+    #misc
+    verbose: bool = True
