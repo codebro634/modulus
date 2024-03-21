@@ -68,7 +68,7 @@ python dataGeneration/generator.py --dir <str> --mesh <str> [--t <float> --dt_si
 ### Optional parameters
 - `t`: Second till which the flow is simulated. Default: 3.0.
 - `dt_real`: Delta t in the final dataset. Default: 0.01.
-- `dt_sim`: Delta t that is used for the calculation. Default: 0.0005.
+- `dt_sim`: Base Delta t that is used for calculation. This value is always assumed for the DFG cylinder flow 2D-2 benchmark. Default: 0.0005.
 - `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (order determined by python's os.walk). None, means all meshes are used. Default: None.
 - `vlevel`: Verbosity level. Min:0, Max:2. Default:1.
 - `cleanup_dir`: If not None, then instead of using `mesh`, the directory  `cleanup_dir` and its subdirectories are searched for files named 'failed_meshes.txt'. These files are assumed to contain paths to meshes. All meshes found this way are used for simulation. Default: None.

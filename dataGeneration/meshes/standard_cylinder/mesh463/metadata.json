@@ -1,1 +1,1 @@
-{"nodes": 2021, "cells": 3818, "object_boundaries": ["on_boundary && x[0]>0.09727 && x[0]< 0.2396 && x[1]>0.13533 && x[1]< 0.27766"], "height": 0.41, "width": 1.6, "inflow_peak": 1.172}
+{"nodes": 2002, "cells": 3774, "object_boundaries": ["on_boundary && x[0]>0.12051 && x[0]< 0.28085 && x[1]>0.02898 && x[1]< 0.18931"], "height": 0.41, "width": 1.6, "shapes": ["ellipse"], "inflow_peak": 0.888}

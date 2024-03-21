@@ -26,7 +26,7 @@ parser.add_argument('--scale_dt_base', type=float, default=1.25,
 parser.add_argument('--qoi', action='store_true',
                     help='If set, calculate and save quantities of interest for the first simulation. Assumes that the mesh/inflow is that of DFG cylinder flow 2D-2 benchmark.')
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
-parser.add_argument("--dt_sim", type=float, default=0.0005, help="Delta t that is used for calculation.")
+parser.add_argument("--dt_sim", type=float, default=0.0005, help="Base Delta t that is used for calculation. This value is always assumed for the DFG cylinder flow 2D-2 benchmark.")
 parser.add_argument("--dt_real", type=float, default=0.01, help="Delta t in the final dataset.")
 parser.add_argument("--t", type=float, default=3.0, help="Second til which flow is simulated.")
 parser.add_argument('--dir', default="datasets/test", help='Path to where results are stored')
@@ -96,6 +96,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         obstacle_condition = " || ".join(['(' + x + ')' for x in metadata['object_boundaries']])
         if 'inflow_peak' in metadata:
             inflow_peak = metadata['inflow_peak']
+        shapes = metadata['shapes']
     else:
         channel = Rectangle(Point(0, 0), Point(2.2, 0.41))
         obstacle = Circle(Point(0.2, 0.2), 0.05)
@@ -104,6 +105,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         channel_width = 2.2
         channel_height = 0.41
         inflow_peak = 1.5
+        shapes = ['ellipse']
         obstacle_condition = 'on_boundary && x[0]>0.1 && x[0]<0.3 && x[1]>0.1 && x[1]<0.3'
 
     # Setup parameters
@@ -211,8 +213,9 @@ for sim, mesh_path in enumerate(mesh_paths):
     # Time-stepping
     t = 0
     image_v_locs, image_p_locs, error_raised = [], [], False
+    OVERSHOOT_FAC = 2
 
-    for n in range(num_steps):  # num_steps
+    for n in range(int(num_steps * OVERSHOOT_FAC)):  # num_steps
 
         # Update current time
         t += dt
@@ -233,14 +236,17 @@ for sim, mesh_path in enumerate(mesh_paths):
             solve(A3, u_.vector(), b3, 'cg', 'sor')
         except RuntimeError:
             if args.vlevel > 0:
-                print(f"Error raised at time step {n} for mesh {mesh_path}.", flush=True)
+                msg = f"Error raised at time step {n} for mesh {mesh_path}." + (f"Past save range." if n >= num_steps else "")
+                print(msg, flush=True)
+                with open(os.path.join(results_dir, 'progress.txt'), 'a') as f:
+                    f.write(msg + "\n")
             with open(os.path.join(results_dir, 'failed_meshes.txt'), 'a') as f:
                 f.write(mesh_path + "\n")
             error_raised = True
             break
 
         # Plot solution
-        if num_frames > 0 and n % max(num_steps // num_frames, 1) == 0 and sim == 0:
+        if n < num_steps and num_frames > 0 and n % max(num_steps // num_frames, 1) == 0 and sim == 0:
             title = f"velocity{n}"
             plot(u_, title=title)
             plt.savefig(os.path.join(plot_path, title + ".png"))
@@ -252,7 +258,7 @@ for sim, mesh_path in enumerate(mesh_paths):
             image_p_locs.append(os.path.join(plot_path, title + ".png"))
 
         # Save nodal values to file
-        if (not args.dont_save) or (t >= t_thrs and args.qoi):  # Second condition applies only for benchmark
+        if n < num_steps and ((not args.dont_save) or (t >= t_thrs and args.qoi)):  # Second condition applies only for benchmark
             timeseries_u.store(u_.vector(), t)
             timeseries_p.store(p_.vector(), t)
 
@@ -263,9 +269,9 @@ for sim, mesh_path in enumerate(mesh_paths):
         # Print progress
         progress_str = None
         if args.vlevel == 2:
-            progress_str = f"Progress {n / num_steps} in simulation {sim+1+offset}/{len(mesh_paths)+offset}"
+            progress_str = f"Progress {n / (OVERSHOOT_FAC* num_steps)} in simulation {sim+1+offset}/{len(mesh_paths)+offset}"
         elif args.vlevel == 1 and n % 100 == 0:
-            progress_str = f"Progress {n / num_steps} in simulation {sim+1+offset}/{len(mesh_paths)+offset}"
+            progress_str = f"Progress {n / (OVERSHOOT_FAC* num_steps)} in simulation {sim+1+offset}/{len(mesh_paths)+offset}"
 
         if progress_str is not None:
             print(progress_str, flush=True)

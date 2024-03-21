@@ -236,7 +236,8 @@ def create_mesh(height:float = 0.41, width:float= 1.6, objects: list[object] = [
     mesh = meshio.Mesh(mesh.points[:, :2], {"triangle": mesh.get_cells_type("triangle")})
 
 
-    return mesh, {'nodes': len(mesh.points), 'cells': mesh.cells[0].data.shape[0], 'object_boundaries': [obj.boundary_string() for obj in objects], 'height': height, 'width': width}
+    return mesh, {'nodes': len(mesh.points), 'cells': mesh.cells[0].data.shape[0], 'object_boundaries': [obj.boundary_string() for obj in objects],
+                  'height': height, 'width': width, 'shapes': [obj.shape for obj in objects]}
 
 def save_mesh(mesh: meshio.Mesh, metadata: dict, mesh_name: str, folder: str):
     #Create folder if it does not exist

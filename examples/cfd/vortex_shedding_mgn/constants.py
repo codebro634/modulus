@@ -52,6 +52,7 @@ class Constants(BaseModel):
     inter_eval: bool = False #Whether or not to do a mini-evaluation after each epoch
     num_test_samples: int = 40
     num_test_time_steps: int = 300
+    test_start_sample: int = 0
 
     # animate configs
     animate: bool = True

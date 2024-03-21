@@ -1,1 +1,1 @@
-{"nodes": 2028, "cells": 3843, "object_boundaries": ["on_boundary && x[0]>0.22567 && x[0]< 0.32422 && x[1]>0.10675 && x[1]< 0.2263"], "height": 0.41, "width": 1.6, "inflow_peak": 2.11}
+{"nodes": 2047, "cells": 3880, "object_boundaries": ["on_boundary && x[0]>0.13008 && x[0]< 0.21679 && x[1]>0.22855 && x[1]< 0.34607"], "height": 0.41, "width": 1.6, "shapes": ["rect"], "inflow_peak": 0.778}
