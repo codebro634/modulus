@@ -60,7 +60,7 @@ python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--wid
 # Simulate flow on a mesh
 
 ```
-python dataGeneration/generator.py --dir <str> --mesh <str> [--t <float> --dt_sim <float> --dt_real <float> --mesh_range <tuple(int,int)> --vlevel <int> --cleanup_dir <str> --num_frames <int> --dont_save --qoi --scale_dt_base]
+python dataGeneration/generator.py --dir <str> --mesh <str> [--t <float> --dt_sim <float> --dt_real <float> --mesh_range <tuple(int,int)> --vlevel <int> --cleanup_dir <str> --num_frames <int> --dont_save --qoi]
 ```
 - `dir`: Name of the dir to save the simulation results into.
 - `mesh`: Path to the mesh, the simulation is supposed to be run on. Can also be a directory. In that case, all meshes within all subfolders of that directory are simulated.
@@ -68,15 +68,14 @@ python dataGeneration/generator.py --dir <str> --mesh <str> [--t <float> --dt_si
 ### Optional parameters
 - `t`: Second till which the flow is simulated. Default: 3.0.
 - `dt_real`: Delta t in the final dataset. Default: 0.01.
-- `dt_sim`: Base Delta t that is used for calculation. This value is always assumed for the DFG cylinder flow 2D-2 benchmark. Default: 0.0005.
+- `dt_sim`: Base Delta t that is used for calculation. This value adapts with the inflow peak and has remains unchanged for 1.25 inflow peak.. Default: 0.00025.
 - `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (order determined by python's os.walk). None, means all meshes are used. Default: None.
 - `vlevel`: Verbosity level. Min:0, Max:2. Default:1.
 - `cleanup_dir`: If not None, then instead of using `mesh`, the directory  `cleanup_dir` and its subdirectories are searched for files named 'failed_meshes.txt'. These files are assumed to contain paths to meshes. All meshes found this way are used for simulation. Default: None.
 - `num_frames`: If > 0, save animation of simulation as gif with num_frames frames. Default: 0.
 - `dont_save`: If set, the simulation data is discarded and not saved (could be used if only the animation is needed).
 - `qoi`: If set, calculate and save quantities of interest for the first simulation. Assumes that the mesh/inflow is that of DFG cylinder flow 2D-2 benchmark.
-- `scale_dt_base`: If not None, `dt_sim` is adjusted inversely proportional to the inflow peak such that `dt_sim_adjusted` = `dt_sim` * min(1,`scale_dt_base` / `inflow_peak`). Default: 1.25.
-  
+
 # Analyze dataset (Used for reverse-engineering parameters)
 
 ```

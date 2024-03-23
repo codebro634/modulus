@@ -57,7 +57,7 @@ class Constants(BaseModel):
     # animate configs
     animate: bool = True
     viz_vars: Tuple[str, ...] = ("u", "v", "p")
-    frame_skip: int = 10
+    frame_skip: int = 5
     frame_interval: int = 1
 
     #misc

@@ -28,7 +28,7 @@ def set_cwd(start_path='.'):
 
 if __name__ == "__main__":
     if torch.cuda.is_available():
-        x = torch.tensor([1,2,3],device='cuda:0') #Memory hack to grab some initial memory on the GPU to avoid CUDA out of memory
+        x = torch.tensor([1, 2, 3],device='cuda:0') #Memory hack to grab some initial memory on the GPU to avoid CUDA out of memory
 
     #Change cwd
     set_cwd()

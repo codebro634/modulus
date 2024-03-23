@@ -401,6 +401,7 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars = ("u",), ran
         #Setup Config
         C = deepcopy(C)
         C.viz_vars = vars
+        C.data_dir = "./raw_dataset/cylinder_flow/" + dataset
         C.save_name = dataset
         C.num_test_samples = (1+range[1]-range[0]) if isinstance(range, list) else 1
         C.animate = True
@@ -411,7 +412,7 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars = ("u",), ran
         rollout.predict()
         animate_rollout(rollout, C)
 
-animate_dataset("lol", ranges = [4,5])
+animate_dataset("test", ranges = [[0,9]])
 
 """
     Evaluate each given model group on each given dataset.

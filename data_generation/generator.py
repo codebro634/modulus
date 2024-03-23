@@ -17,16 +17,11 @@ import gc
 """
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--num_frames", type=int, default=0,
-                    help="If > 0, save animation of simulation as gif with num_frames frames.")
-parser.add_argument('--dont_save', action='store_true',
-                    help='If set, the simulation results are NOT saved and simply discarded.')
-parser.add_argument('--scale_dt_base', type=float, default=1.25,
-                    help='If not None, `dt_sim` is adjusted inversely proportional to the inflow peak such that dt_sim_adjusted = dt_sim * min(1,scale_dt_base / inflow_peak).')
-parser.add_argument('--qoi', action='store_true',
-                    help='If set, calculate and save quantities of interest for the first simulation. Assumes that the mesh/inflow is that of DFG cylinder flow 2D-2 benchmark.')
+parser.add_argument("--num_frames", type=int, default=0, help="If > 0, save animation of simulation as gif with num_frames frames.")
+parser.add_argument('--dont_save', action='store_true', help='If set, the simulation results are NOT saved and simply discarded.')
+parser.add_argument('--qoi', action='store_true', help='If set, calculate and save quantities of interest for the first simulation. Assumes that the mesh/inflow is that of DFG cylinder flow 2D-2 benchmark.')
 parser.add_argument("--vlevel", type=int, default=1, help="Verbosity level. 0 = no verbosity.")
-parser.add_argument("--dt_sim", type=float, default=0.0005, help="Base Delta t that is used for calculation. This value is always assumed for the DFG cylinder flow 2D-2 benchmark.")
+parser.add_argument("--dt_sim", type=float, default=0.00025, help="Base Delta t that is used for calculation. This value adapts with the inflow peak and has remains unchanged for 1.25 inflow peak.")
 parser.add_argument("--dt_real", type=float, default=0.01, help="Delta t in the final dataset.")
 parser.add_argument("--t", type=float, default=3.0, help="Second til which flow is simulated.")
 parser.add_argument('--dir', default="datasets/test", help='Path to where results are stored')
@@ -109,7 +104,7 @@ for sim, mesh_path in enumerate(mesh_paths):
         obstacle_condition = 'on_boundary && x[0]>0.1 && x[0]<0.3 && x[1]>0.1 && x[1]<0.3'
 
     # Setup parameters
-    dt = (args.dt_sim * min(1, args.scale_dt_base / inflow_peak)) if (args.scale_dt_base is not None) else args.dt_sim
+    dt = (args.dt_sim * min(1, 1.25 / inflow_peak))
     N_save = 1
     while N_save * dt < args.dt_real:
         N_save += 1
