@@ -27,8 +27,8 @@ parser.add_argument("--t", type=float, default=3.0, help="Second til which flow 
 parser.add_argument('--dir', default="datasets/test", help='Path to where results are stored')
 parser.add_argument('--mesh', default=None, help='Path to mesh. May also be a folder containing meshes.')
 parser.add_argument('--mesh_range', default=None, help='Range of meshes to use. If None, all meshes are used.')
-parser.add_argument("--cleanup_dir", default=None,
-                    help="Recursively searches through and reruns all erroneous simulations.")
+parser.add_argument("--cleanup_dir", default=None,help="Recursively searches through and reruns all erroneous simulations.")
+
 args = parser.parse_args()
 
 results_dir = args.dir
