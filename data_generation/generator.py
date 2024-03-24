@@ -208,7 +208,7 @@ for sim, mesh_path in enumerate(mesh_paths):
     # Time-stepping
     t = 0
     image_v_locs, image_p_locs, error_raised = [], [], False
-    OVERSHOOT_FAC = 2
+    OVERSHOOT_FAC = 1
 
     for n in range(int(num_steps * OVERSHOOT_FAC)):  # num_steps
 
