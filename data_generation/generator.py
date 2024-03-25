@@ -55,6 +55,8 @@ else:
     if len(mesh_paths) == 0:
         raise Exception(f"No meshes found in {args.mesh}")
 
+mesh_paths.sort()  # lexicographical iteration
+
 if args.mesh_range is not None:
     start, end = args.mesh_range.split(',')
     start, end = int(start), int(end)
@@ -68,7 +70,6 @@ sims_data = []  # One entry for each simulation
 num_frames = args.num_frames
 t_thrs = 25.0  # Only needed when quantities of interest are calculated
 
-mesh_paths.sort()  # lexicographical iteration
 for sim, mesh_path in enumerate(mesh_paths):
 
     if num_frames > 0 and sim == 0:
