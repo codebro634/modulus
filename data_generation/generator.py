@@ -273,190 +273,184 @@ for sim, mesh_path in enumerate(mesh_paths):
             with open(os.path.join(results_dir, 'progress.txt'), 'a') as f:
                 f.write(progress_str + "\n")
 
-    if error_raised:
-        if os.path.exists(tut + ".h5"):
-            os.remove(tut + ".h5")
-        if os.path.exists(tpt + ".h5"):
-            os.remove(tpt + ".h5")
-        del timeseries_p
-        del timeseries_u
-        gc.collect()
-        continue
+    if not error_raised:
+
+        # Create animation
+        if num_frames > 0 and sim == 0:
+            duration = (num_steps // num_frames) * dt / 4  # Divided by 4 to have a bit of slow-motion
+            with imageio.get_writer(os.path.join(plot_path, 'velocity.gif'), mode='I', duration=duration) as writer:
+                for image in image_v_locs:
+                    img = imageio.imread(image)
+                    writer.append_data(img)
+
+            for image in image_v_locs:
+                os.remove(image)
+
+            with imageio.get_writer(os.path.join(plot_path, 'pressure.gif'), mode='I', duration=duration) as writer:
+                for image in image_p_locs:
+                    img = imageio.imread(image)
+                    writer.append_data(img)
+
+            for image in image_p_locs:
+                os.remove(image)
+
+        """Extract data in numpy format from the simulation"""
+        if not args.dont_save:
+            n = mesh.num_vertices()
+            sim_data = dict()
+
+            # Extract velocities
+            velocity = np.zeros(shape=(num_steps, n, 2), dtype=np.float32)
+            times_v = timeseries_u.vector_times()
+            for i, t in enumerate(times_v):
+                timeseries_u.retrieve(u_.vector(), t)
+                x = u_.compute_vertex_values(mesh)  # The same as calling u_ at the coordinates of each vertex
+                velo_t = np.concatenate((x[0:n, np.newaxis], x[n:, np.newaxis]), axis=-1)
+                velocity[i] = velo_t
+            sim_data['velocity'] = velocity
+
+            # Extract pressure values
+            pressure = np.zeros(shape=(num_steps, n, 1), dtype=np.float32)
+            times_p = timeseries_p.vector_times()
+            for i, t in enumerate(times_p):
+                timeseries_p.retrieve(p_.vector(), t)
+                x = p_.compute_vertex_values(mesh)
+                pressure[i] = x[:, np.newaxis]
+            sim_data['pressure'] = pressure
+
+            # Extract mesh graph data
+            sim_data['cells'] = np.repeat(np.array(list(mesh.cells()), dtype=np.int32)[np.newaxis, ...], num_steps, axis=0)
+            sim_data['mesh_pos'] = np.repeat(np.array(list(mesh.coordinates()), dtype=np.float32)[np.newaxis, ...],
+                                             num_steps, axis=0)
+
+
+            def get_vertices_with_cond(mesh, condition):  # From https://fenicsproject.org/qa/2989/vertex-on-mesh-boundary/
+                V = FunctionSpace(mesh, 'CG', 1)
+                bc = DirichletBC(V, 1, condition)
+                u = Function(V)
+                bc.apply(u.vector())
+                d2v = dof_to_vertex_map(V)
+                vertices_on_boundary = d2v[u.vector() == 1.0]
+                return vertices_on_boundary
+
+
+            # Extract node types
+            vertex_types = []
+            v_inflow, v_outflow, v_walls, v_cylinder = get_vertices_with_cond(mesh, inflow), get_vertices_with_cond(mesh,
+                                                                                                                    outflow), get_vertices_with_cond(
+                mesh, walls), get_vertices_with_cond(mesh, obstacle)
+            for v in range(mesh.num_vertices()):
+                if v in v_inflow and not v in v_walls:  # As in deepminds dataset, the four corners are considered boundaries
+                    vertex_types.append(4)
+                elif v in v_outflow and not v in v_walls:
+                    vertex_types.append(5)
+                elif v in v_walls or v in v_cylinder:
+                    vertex_types.append(6)
+                else:
+                    vertex_types.append(0)
+
+            sim_data['node_type'] = np.repeat(np.array(vertex_types, dtype=np.int32)[np.newaxis, :, np.newaxis], num_steps,axis=0)
+
+            # Only save every N-th time step and discard the rest
+            for k, v in sim_data.items():
+                sim_data[k] = sim_data[k][(N_save - 1)::N_save]  # Skip first data points to avoid initial chaos phase
+
+            sims_data.append(sim_data)
+
+        # Calculate quantities of interest (for benchmark only)
+        if sim == 0 and args.qoi:
+
+            times_v = timeseries_u.vector_times()
+            times_p = timeseries_p.vector_times()
+
+            if args.vlevel > 0:
+                print("Calculating quantities of interest", flush=True)
+
+            num_points = 64
+            cpoints = [(0.2 + 0.05 * np.cos(2 * np.pi * k / num_points), 0.2 + 0.05 * np.sin(2 * np.pi * k / num_points))
+                       for k in range(num_points)]
+
+            normal_vecs = []
+            for k in range(num_points):
+                dx_dk = -0.05 * np.sin(2 * np.pi * k / num_points) * (2 * np.pi / num_points)
+                dy_dk = 0.05 * np.cos(2 * np.pi * k / num_points) * (2 * np.pi / num_points)
+                nx = dy_dk
+                ny = -dx_dk
+                length = np.sqrt(nx ** 2 + ny ** 2)
+                nx /= length
+                ny /= length
+                normal_vecs.append((nx, ny))
+
+            dp, cd, cl = [], [], []
+            times = []
+            for j in range(len(times_v)):
+                if j % N_save != 0 or times_v[j] < t_thrs:
+                    continue
+                assert times_v[j] == times_p[j]
+
+                if (args.vlevel > 0 and j % 10 == 0) or args.vlevel > 1:
+                    print(f"Progress: {j / N_save}/{len(times_v) // N_save}", flush=True)
+
+                times.append(times_v[j])
+                timeseries_u.retrieve(u_.vector(), times_v[j])
+                timeseries_p.retrieve(p_.vector(), times_p[j])
+
+                fd, fl = 0, 0
+                for i in range(num_points):
+                    normal_vec = normal_vecs[i]
+                    sigma = mu * (nabla_grad(u_) + grad(u_)) - p_ * Identity(2)
+                    vec = dolfin.project(dot(sigma, as_vector(normal_vec)))(cpoints[i])
+                    fd += vec[0]
+                    fl += vec[1]
+
+                fd *= (0.1 * math.pi) / num_points
+                fl *= (0.1 * math.pi) / num_points
+                cd_ = 2 * fd / 0.1
+                cl_ = 2 * fl / 0.1
+
+                deltaP = p_((0.15, 0.2)) - p_(0.25, 0.2)
+
+                dp.append(deltaP)
+                cd.append(cd_)
+                cl.append(cl_)
+
+            dp = np.array(dp)
+            cd = np.array(cd)
+            cl = np.array(cl)
+
+            # Get frequency of lift coefficient peaks
+            max_idx = np.argmax(cl)
+            past_peak_idx = None
+            for i in range(max_idx, len(cl)):
+                if times[i] - times[max_idx] >= 0.2:
+                    past_peak_idx = i
+                    break
+            next_peaks = np.argwhere(cl[past_peak_idx:] == np.max(cl[past_peak_idx:]))
+            frequency = 1 / (times[next_peaks[0][0] + past_peak_idx] - times[max_idx])
+
+            strouhal = frequency * 0.1
+            drag_coef = np.max(cd)
+            lift_coef = np.max(cl)
+            max_delta_p = np.max(dp)
+
+            print(
+                f"Frequency: {frequency} Strouhal number: {strouhal}, Drag coefficient: {drag_coef}, Lift coefficient: {lift_coef}, Max delta P: {max_delta_p}",
+                flush=True)
+
+            # Save arrays as human readable format
+            np.savetxt(results_dir + "/drag_coefficient.txt", cd, delimiter=',', fmt="%s")
+            np.savetxt(results_dir + "/lift_coefficient.txt", cl, delimiter=',', fmt="%s")
+            np.savetxt(results_dir + "/delta_p.txt", dp, delimiter=',', fmt="%s")
+            np.savetxt(results_dir + "/times.txt", times, delimiter=',', fmt="%s")
 
     if args.vlevel > 0:
         print(f"Duration: {round(time.time() - start, 3)}s", flush=True)
 
-    # Create animation
-    if num_frames > 0 and sim == 0:
-        duration = (num_steps // num_frames) * dt / 4  # Divided by 4 to have a bit of slow-motion
-        with imageio.get_writer(os.path.join(plot_path, 'velocity.gif'), mode='I', duration=duration) as writer:
-            for image in image_v_locs:
-                img = imageio.imread(image)
-                writer.append_data(img)
-
-        for image in image_v_locs:
-            os.remove(image)
-
-        with imageio.get_writer(os.path.join(plot_path, 'pressure.gif'), mode='I', duration=duration) as writer:
-            for image in image_p_locs:
-                img = imageio.imread(image)
-                writer.append_data(img)
-
-        for image in image_p_locs:
-            os.remove(image)
-
-    """Extract data in numpy format from the simulation"""
-    if not args.dont_save:
-        n = mesh.num_vertices()
-        sim_data = dict()
-
-        # Extract velocities
-        velocity = np.zeros(shape=(num_steps, n, 2), dtype=np.float32)
-        times_v = timeseries_u.vector_times()
-        for i, t in enumerate(times_v):
-            timeseries_u.retrieve(u_.vector(), t)
-            x = u_.compute_vertex_values(mesh)  # The same as calling u_ at the coordinates of each vertex
-            velo_t = np.concatenate((x[0:n, np.newaxis], x[n:, np.newaxis]), axis=-1)
-            velocity[i] = velo_t
-        sim_data['velocity'] = velocity
-
-        # Extract pressure values
-        pressure = np.zeros(shape=(num_steps, n, 1), dtype=np.float32)
-        times_p = timeseries_p.vector_times()
-        for i, t in enumerate(times_p):
-            timeseries_p.retrieve(p_.vector(), t)
-            x = p_.compute_vertex_values(mesh)
-            pressure[i] = x[:, np.newaxis]
-        sim_data['pressure'] = pressure
-
-        # Extract mesh graph data
-        sim_data['cells'] = np.repeat(np.array(list(mesh.cells()), dtype=np.int32)[np.newaxis, ...], num_steps, axis=0)
-        sim_data['mesh_pos'] = np.repeat(np.array(list(mesh.coordinates()), dtype=np.float32)[np.newaxis, ...],
-                                         num_steps, axis=0)
-
-
-        def get_vertices_with_cond(mesh, condition):  # From https://fenicsproject.org/qa/2989/vertex-on-mesh-boundary/
-            V = FunctionSpace(mesh, 'CG', 1)
-            bc = DirichletBC(V, 1, condition)
-            u = Function(V)
-            bc.apply(u.vector())
-            d2v = dof_to_vertex_map(V)
-            vertices_on_boundary = d2v[u.vector() == 1.0]
-            return vertices_on_boundary
-
-
-        # Extract node types
-        vertex_types = []
-        v_inflow, v_outflow, v_walls, v_cylinder = get_vertices_with_cond(mesh, inflow), get_vertices_with_cond(mesh,
-                                                                                                                outflow), get_vertices_with_cond(
-            mesh, walls), get_vertices_with_cond(mesh, obstacle)
-        for v in range(mesh.num_vertices()):
-            if v in v_inflow and not v in v_walls:  # As in deepminds dataset, the four corners are considered boundaries
-                vertex_types.append(4)
-            elif v in v_outflow and not v in v_walls:
-                vertex_types.append(5)
-            elif v in v_walls or v in v_cylinder:
-                vertex_types.append(6)
-            else:
-                vertex_types.append(0)
-
-        sim_data['node_type'] = np.repeat(np.array(vertex_types, dtype=np.int32)[np.newaxis, :, np.newaxis], num_steps,axis=0)
-
-        # Only save every N-th time step and discard the rest
-        for k, v in sim_data.items():
-            sim_data[k] = sim_data[k][(N_save - 1)::N_save]  # Skip first data points to avoid initial chaos phase
-
-        sims_data.append(sim_data)
-
-    # Calculate quantities of interest (for benchmark only)
-    if sim == 0 and args.qoi:
-
-        times_v = timeseries_u.vector_times()
-        times_p = timeseries_p.vector_times()
-
-        if args.vlevel > 0:
-            print("Calculating quantities of interest", flush=True)
-
-        num_points = 64
-        cpoints = [(0.2 + 0.05 * np.cos(2 * np.pi * k / num_points), 0.2 + 0.05 * np.sin(2 * np.pi * k / num_points))
-                   for k in range(num_points)]
-
-        normal_vecs = []
-        for k in range(num_points):
-            dx_dk = -0.05 * np.sin(2 * np.pi * k / num_points) * (2 * np.pi / num_points)
-            dy_dk = 0.05 * np.cos(2 * np.pi * k / num_points) * (2 * np.pi / num_points)
-            nx = dy_dk
-            ny = -dx_dk
-            length = np.sqrt(nx ** 2 + ny ** 2)
-            nx /= length
-            ny /= length
-            normal_vecs.append((nx, ny))
-
-        dp, cd, cl = [], [], []
-        times = []
-        for j in range(len(times_v)):
-            if j % N_save != 0 or times_v[j] < t_thrs:
-                continue
-            assert times_v[j] == times_p[j]
-
-            if (args.vlevel > 0 and j % 10 == 0) or args.vlevel > 1:
-                print(f"Progress: {j / N_save}/{len(times_v) // N_save}", flush=True)
-
-            times.append(times_v[j])
-            timeseries_u.retrieve(u_.vector(), times_v[j])
-            timeseries_p.retrieve(p_.vector(), times_p[j])
-
-            fd, fl = 0, 0
-            for i in range(num_points):
-                normal_vec = normal_vecs[i]
-                sigma = mu * (nabla_grad(u_) + grad(u_)) - p_ * Identity(2)
-                vec = dolfin.project(dot(sigma, as_vector(normal_vec)))(cpoints[i])
-                fd += vec[0]
-                fl += vec[1]
-
-            fd *= (0.1 * math.pi) / num_points
-            fl *= (0.1 * math.pi) / num_points
-            cd_ = 2 * fd / 0.1
-            cl_ = 2 * fl / 0.1
-
-            deltaP = p_((0.15, 0.2)) - p_(0.25, 0.2)
-
-            dp.append(deltaP)
-            cd.append(cd_)
-            cl.append(cl_)
-
-        dp = np.array(dp)
-        cd = np.array(cd)
-        cl = np.array(cl)
-
-        # Get frequency of lift coefficient peaks
-        max_idx = np.argmax(cl)
-        past_peak_idx = None
-        for i in range(max_idx, len(cl)):
-            if times[i] - times[max_idx] >= 0.2:
-                past_peak_idx = i
-                break
-        next_peaks = np.argwhere(cl[past_peak_idx:] == np.max(cl[past_peak_idx:]))
-        frequency = 1 / (times[next_peaks[0][0] + past_peak_idx] - times[max_idx])
-
-        strouhal = frequency * 0.1
-        drag_coef = np.max(cd)
-        lift_coef = np.max(cl)
-        max_delta_p = np.max(dp)
-
-        print(
-            f"Frequency: {frequency} Strouhal number: {strouhal}, Drag coefficient: {drag_coef}, Lift coefficient: {lift_coef}, Max delta P: {max_delta_p}",
-            flush=True)
-
-        # Save arrays as human readable format
-        np.savetxt(results_dir + "/drag_coefficient.txt", cd, delimiter=',', fmt="%s")
-        np.savetxt(results_dir + "/lift_coefficient.txt", cl, delimiter=',', fmt="%s")
-        np.savetxt(results_dir + "/delta_p.txt", dp, delimiter=',', fmt="%s")
-        np.savetxt(results_dir + "/times.txt", times, delimiter=',', fmt="%s")
-
     # Memory cleanup
-    os.remove(tut + ".h5")
-    os.remove(tpt + ".h5")
+    if os.path.exists(tut + ".h5"):
+        os.remove(tut + ".h5")
+    if os.path.exists(tpt + ".h5"):
+        os.remove(tpt + ".h5")
     del timeseries_p
     del timeseries_u
     if (sim + 1) % 10 == 0:
