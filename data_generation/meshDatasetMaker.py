@@ -1,3 +1,5 @@
+# File created by Robin Schmöcker, Leibniz University Hannover, Germany, Copyright (c) 2024
+
 from meshMaker import *
 import argparse
 
@@ -114,16 +116,16 @@ def mixed_mesh_set(two_objs_prob = 0.0, circles = True, tris = False, quads = Fa
         save_mesh(mesh[0],mesh[1], f"mesh{i+1}", f"meshes/{name}")
 
 
-#mixed_mesh_set(args.two_obj_prob, args.circs, args.tris, args.quads, args.stretch, args.rotate, args.name)
+mixed_mesh_set(args.two_obj_prob, args.circs, args.tris, args.quads, args.stretch, args.rotate, args.name)
 
-print("standard")
-mixed_mesh_set(0,True,False,False,False,False,"standard_cylinder")
-print("2cyl")
-mixed_mesh_set(0.5,True,False,False,False,False,"2cylinders")
-print("tri quad")
-mixed_mesh_set(0,True,True,True,False,True,"cylinder_tri_quad")
-print("stretch")
-mixed_mesh_set(0,True,False,False,True,False,"cylinder_stretch")
-print("mixed")
-mixed_mesh_set(0.25, True, True, True, True,True,"mixed_all")
+# print("standard")
+# mixed_mesh_set(0,True,False,False,False,False,"standard_cylinder")
+# print("2cyl")
+# mixed_mesh_set(0.5,True,False,False,False,False,"2cylinders")
+# print("tri quad")
+# mixed_mesh_set(0,True,True,True,False,True,"cylinder_tri_quad")
+# print("stretch")
+# mixed_mesh_set(0,True,False,False,True,False,"cylinder_stretch")
+# print("mixed")
+# mixed_mesh_set(0.25, True, True, True, True,True,"mixed_all")
 

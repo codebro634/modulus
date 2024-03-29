@@ -1,3 +1,5 @@
+# File created by Robin Schmöcker, Leibniz University Hannover, Germany, Copyright (c) 2024
+
 from fenics import *
 from mshr import *
 import numpy as np

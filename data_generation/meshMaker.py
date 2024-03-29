@@ -1,3 +1,5 @@
+# File created by Robin Schmöcker, Leibniz University Hannover, Germany, Copyright (c) 2024
+
 import numpy as np
 import pygmsh
 import meshio

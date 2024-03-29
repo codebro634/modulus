@@ -1,3 +1,6 @@
+# File created by Robin Schmöcker, Leibniz University Hannover, Germany, Copyright (c) 2024
+
+
 import math
 import numpy as np
 import argparse
