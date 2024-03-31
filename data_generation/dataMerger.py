@@ -52,8 +52,9 @@ def repeat_simulation_data(data_path, output_folder, output_name, n, range_to_re
     Args:
         folders: List of folder paths to merge.
         output_folder: Folder to save the merged data.
+        range_to_merge: Int Tuple that indicates the range of entries to keep. If None, the entire dataset is merged.
 """
-def merge_simulation_data(folders, output_folder):
+def merge_simulation_data(folders, output_folder, range_to_merge=None):
     #Collect paths
     sim_paths = []
     for folder in folders:
@@ -65,14 +66,16 @@ def merge_simulation_data(folders, output_folder):
     merged_sims = []
     for path in sim_paths:
         merged_sims = np.concatenate((merged_sims, np.load(path, allow_pickle=True)))
+    if range_to_merge is not None:
+        merged_sims = merged_sims[range_to_merge[0]:range_to_merge[1]]
 
     #Save merged data
     os.makedirs(output_folder, exist_ok=True)
     np.save(os.path.join(output_folder, "merged.npy"), merged_sims)
 
-#out = "../examples/cfd/vortex_shedding_mgn/raw_dataset/cylinder_flow/merged/"
-#folders = ["../examples/cfd/vortex_shedding_mgn/raw_dataset/cylinder_flow/standard_cylinder_test/"]
-#merge_simulation_data(folders, out)
+#out = "../cylinder_flow_mgn/raw_dataset/cylinder_flow/merged/"
+#folders = ["../cylinder_flow_mgn/raw_dataset/cylinder_flow/mixed_all/"]
+#merge_simulation_data(folders, out, range_to_merge=[400, 440])
 
 #parser = argparse.ArgumentParser()
 #parser.add_argument("--out",  help="Output folder.")
