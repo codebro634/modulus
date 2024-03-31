@@ -4,8 +4,8 @@ import os
 import argparse
 import torch
 from constants import Constants
-from vortex_shedding_mgn.inference import evaluate_model
-from vortex_shedding_mgn.train import train
+from cylinder_flow_mgn.inference import evaluate_model
+from cylinder_flow_mgn.train import train
 
 """
 Recursively search all subdirectories from the dirctory the script has been called
@@ -54,6 +54,7 @@ if __name__ == "__main__":
     parser.add_argument('--multihop', default="none", help='Which multihop method to use. Choose from {none,sum,concat_sum,concat}.')
     parser.add_argument('--weight', type=float, default=0.5, help='The weight to be used for multihop if mode=sum is chosen.')
     parser.add_argument('--lr_decay', type=float, default=0.82540418526, help='Learning rate decay.')
+    parser.add_argument('--animate', action='store_true',help='Whether to animate rollout predictions if --eval has been set.')
     parser.add_argument('--train', action='store_true', help='')
     parser.add_argument('--fresh_optim', action='store_true', help='')
     parser.add_argument('--eval', action='store_true', help='')
@@ -77,6 +78,7 @@ if __name__ == "__main__":
     C.inter_eval = args.inter_eval
     C.hidden_dim = args.hidden
     C.fresh_optim = args.fresh_optim
+    C.animate = args.animate
 
     if args.multihop != "none":
         C.multi_hop_edges = {"agg": args.multihop, "weight": args.weight}
