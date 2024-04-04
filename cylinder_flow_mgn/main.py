@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/cylinder_flow", help='Path to the dataset relative to the folder vortex_shedding_mgn.')
+    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/deepmind", help='Path to the dataset relative to the folder vortex_shedding_mgn.')
     parser.add_argument('--load_name', default="model", help='Name of the model to load/init.')
     parser.add_argument('--save_name', default="model", help='Name the model will be saved under.')
     parser.add_argument('--inter_eval', action='store_true', help='Does tiny intermediate evaluations after each epoch.')

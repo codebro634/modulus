@@ -354,12 +354,11 @@ class MGNRollout:
 def animate_rollout(rollout, C: Constants):
     path = f"animations/{C.save_name.split('.')[0]}"
     os.makedirs(path, exist_ok=True)
-    idx = [rollout.var_identifier[k] for k in C.viz_vars]
-    for i in idx:
-        var_path = f"{path}/{C.viz_vars[i]}"
+    for viz_var in C.viz_vars:
+        var_path = f"{path}/{viz_var}"
         os.makedirs(var_path, exist_ok=True)
         for j in range(C.num_test_samples):
-            rollout.init_animation(idx=i, start=j * (C.num_test_time_steps - 1),
+            rollout.init_animation(idx=rollout.var_identifier[viz_var], start=j * (C.num_test_time_steps - 1),
                                    end=(j + 1) * (C.num_test_time_steps - 1))
             ani = animation.FuncAnimation(
                 rollout.fig,
@@ -414,7 +413,7 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars = ("u",), ran
         rollout.predict()
         animate_rollout(rollout, C)
 
-#animate_dataset("test", ranges = [[0,9]])
+#animate_dataset("mixed_all", ranges = [[0,9]])
 
 """
     Evaluate each given model group on each given dataset.
@@ -448,7 +447,9 @@ def pairwise_evaluation(model_groups: list[list[str]|tuple[list[str],str]], data
             #Print results
             print(f"-------{C.load_name} --> {C.data_dir}----------")
             for key, value in result_sum.items():
-                print(f"{key} | Min:{min(value)} Max:{max(value)} Avg:{sum(value)/len(value)}")
+                minv, maxx,avg = min(value), max(value), sum(value)/len(value)
+                max_dist_avg = max(abs(minv-avg),abs(maxx-avg))
+                print(f"{key} | Min:{min(value)} Max:{max(value)} Avg:{sum(value)/len(value)} Range:{max_dist_avg}")
 
 
 #Non existent path => newly initialized model
