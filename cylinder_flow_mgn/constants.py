@@ -23,12 +23,12 @@ class Constants(BaseModel):
     """vortex shedding constants"""
 
     # data configs
-    data_dir: str = "../examples/cfd/vortex_shedding_mgn/raw_dataset/cylinder_flow/cylinder_flow"
+    data_dir: str = "raw_dataset/cylinder_flow/deepmind"
     norm_data_dir: str = None #If set, take the edge/node normalization from this dir for inference
     load_name: str = "model"
     save_name: str = "model"
     ckp: int = None #None loads the latest checkpoint, -1 initializes a new model
-    ckpt_path: str = "../examples/cfd/vortex_shedding_mgn/checkpoints"
+    ckpt_path: str = "checkpoints"
 
     # training configs
     batch_size: int = 1

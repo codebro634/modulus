@@ -88,7 +88,7 @@ class MGNRollout:
 
             # load checkpoint
             _ = load_checkpoint(
-                os.path.join(C.ckpt_path, C.load_name, "../examples/cfd/vortex_shedding_mgn/checkpoints"),
+                os.path.join(C.ckpt_path, C.load_name,"checkpoints"),
                 models=self.model,
                 device=self.device,
                 epoch=C.ckp,
@@ -413,7 +413,7 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars = ("u",), ran
         rollout.predict()
         animate_rollout(rollout, C)
 
-#animate_dataset("mixed_all", ranges = [[0,9]])
+#animate_dataset("standard_cylinder", ranges = [[0,5]])
 
 """
     Evaluate each given model group on each given dataset.
