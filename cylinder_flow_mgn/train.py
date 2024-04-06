@@ -96,7 +96,7 @@ class MGNTrainer:
 
         # load checkpoint
         self.epoch_init = load_checkpoint(
-            os.path.join(C.ckpt_path, C.load_name, "../examples/cfd/vortex_shedding_mgn/checkpoints"),
+            os.path.join(C.ckpt_path, C.load_name),
             models=self.model,
             optimizer=self.optimizer if not C.fresh_optim else None,
             scheduler=self.scheduler if not C.fresh_optim else None,
@@ -191,7 +191,7 @@ def train(C: Constants):
 
         #Save current model
         save_checkpoint(
-            os.path.join(log_path, "../examples/cfd/vortex_shedding_mgn/checkpoints"),
+            os.path.join(log_path),
             models=trainer.model,
             optimizer=trainer.optimizer,
             scheduler=trainer.scheduler,

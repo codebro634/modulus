@@ -88,7 +88,7 @@ class MGNRollout:
 
             # load checkpoint
             _ = load_checkpoint(
-                os.path.join(C.ckpt_path, C.load_name,"checkpoints"),
+                os.path.join(C.ckpt_path, C.load_name),
                 models=self.model,
                 device=self.device,
                 epoch=C.ckp,
