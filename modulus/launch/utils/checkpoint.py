@@ -251,7 +251,7 @@ def save_checkpoint(
     output_filename = _get_checkpoint_filename(
         path, index=epoch, saving=True, model_type="pt"
     )
-    if epoch:
+    if epoch is not None:
         checkpoint_dict["epoch"] = epoch
 
     # Save checkpoint to memory
@@ -372,5 +372,5 @@ def load_checkpoint(
 
     epoch = 0
     if "epoch" in checkpoint_dict:
-        epoch = checkpoint_dict["epoch"]
+        epoch = checkpoint_dict["epoch"] + 1
     return epoch

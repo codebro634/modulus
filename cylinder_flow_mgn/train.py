@@ -189,6 +189,8 @@ def train(C: Constants):
         if C.verbose:
             print(log_string, flush=True)
 
+        trainer.scheduler.step()
+
         #Save current model
         save_checkpoint(
             os.path.join(log_path),
@@ -198,6 +200,7 @@ def train(C: Constants):
             scaler=trainer.scaler,
             epoch=epoch,
         )
+
         if C.verbose:
             print(f"Saved model", flush=True)
 
@@ -205,7 +208,6 @@ def train(C: Constants):
         if C.inter_eval:
             evaluate_model(C=C, intermediate_eval=True)
 
-        trainer.scheduler.step()
         start = time.time()
 
     if C.verbose:
