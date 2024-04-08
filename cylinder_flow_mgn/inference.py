@@ -420,7 +420,7 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars = ("u",), ran
         rollout.predict()
         animate_rollout(rollout, C)
 
-animate_dataset("standard_cylinder", ranges = [[0,5]])
+#animate_dataset("standard_cylinder", ranges = [[0,5]])
 
 """
     Evaluate each given model group on each given dataset.
