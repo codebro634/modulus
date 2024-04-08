@@ -28,6 +28,7 @@ from modulus.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
 from modulus.launch.utils import load_checkpoint
 from constants import Constants
 from time import time
+import math
 from copy import deepcopy
 
 """
@@ -112,7 +113,7 @@ class MGNRollout:
 
         #Indices. 0: velocity, 1: pressure
         mse = torch.nn.MSELoss()
-        mse_1_step, mse_50_step, mse_all_step, vmse_last_sim = np.zeros(2), np.zeros(2), np.zeros(2), np.zeros(2)
+        mse_1_step, mse_50_step, mse_all_step, vmse_last_sim = np.zeros(2), np.zeros(2), np.zeros(2), 0
         num_steps, num_50_steps = 0, 0
         t1step, t50step, tallstep = 0, 0, 0
 
@@ -141,9 +142,9 @@ class MGNRollout:
                 i += 1
             else:
                 if self.C.verbose and i > 0:
-                    rmse_last_sim = np.sqrt(vmse_last_sim / self.C.num_test_time_steps)
+                    rmse_last_sim = math.sqrt(vmse_last_sim / self.C.num_test_time_steps)
                     print(f"RMSE sim {(i // (self.C.num_test_time_steps-1)) - 1} = {rmse_last_sim}")
-                    vmse_last_sim = np.zeros(2)
+                    vmse_last_sim = 0
 
 
             invar[:, 0:2] = self.dataset.normalize_node(
