@@ -112,7 +112,7 @@ class MGNRollout:
 
         #Indices. 0: velocity, 1: pressure
         mse = torch.nn.MSELoss()
-        mse_1_step, mse_50_step, mse_all_step = np.zeros(2), np.zeros(2), np.zeros(2)
+        mse_1_step, mse_50_step, mse_all_step, vmse_last_sim = np.zeros(2), np.zeros(2), np.zeros(2), np.zeros(2)
         num_steps, num_50_steps = 0, 0
         t1step, t50step, tallstep = 0, 0, 0
 
@@ -139,6 +139,12 @@ class MGNRollout:
             if i % (self.C.num_test_time_steps - 1) != 0: #If = 0, then new graph starts
                 invar[:, 0:2] = self.pred[i - 1][:, 0:2].clone()
                 i += 1
+            else:
+                if self.C.verbose and i > 0:
+                    rmse_last_sim = np.sqrt(vmse_last_sim / self.C.num_test_time_steps)
+                    print(f"RMSE sim {(i // (self.C.num_test_time_steps-1)) - 1} = {rmse_last_sim}")
+                    vmse_last_sim = np.zeros(2)
+
 
             invar[:, 0:2] = self.dataset.normalize_node(
                 invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
@@ -217,6 +223,7 @@ class MGNRollout:
             #Loss calculation
             mse_all_step[0] += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item() #Velocity prediction
             mse_all_step[1] += mse(self.pred[-1][:, 2], self.exact[-1][:, 2]).item() #Pressure
+            vmse_last_sim += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
             tallstep += dt_allstep if self.model is not None else 0
 
             if i % self.C.num_test_time_steps < 50:
@@ -413,7 +420,7 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars = ("u",), ran
         rollout.predict()
         animate_rollout(rollout, C)
 
-#animate_dataset("standard_cylinder", ranges = [[0,5]])
+animate_dataset("standard_cylinder", ranges = [[0,5]])
 
 """
     Evaluate each given model group on each given dataset.
