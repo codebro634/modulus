@@ -30,6 +30,7 @@ from constants import Constants
 from time import time
 import math
 from copy import deepcopy
+import matplotlib
 
 """
 MGNRollout manages the inference loop for the MeshGraphNet model.
@@ -95,8 +96,6 @@ class MGNRollout:
                 epoch=C.ckp,
                 verbose=C.verbose and inter_sim is None,
             )
-
-        self.var_identifier = {"u": 0, "v": 1, "p": 2}
 
     """
         Rollout the model and calculate the RMSE for the velocity and pressure fields for 1, 50 and all steps in the loaded dataset.
@@ -282,9 +281,24 @@ class MGNRollout:
         return result_dict
 
 
-    def init_animation(self, idx, start, end):
-        self.pred_i = [var[:, idx] for var in self.pred[start:end]]
-        self.exact_i = [var[:, idx] for var in self.exact[start:end]]
+    def init_animation(self, viz_var, start, end):
+        pred = self.pred[start:end]
+        exact = self.exact[start:end]
+        if viz_var == "vx":
+            self.pred_i = [var[:, 0] for var in pred]
+            self.exact_i = [var[:, 0] for var in exact]
+        elif viz_var == "vy":
+            self.pred_i = [var[:, 1] for var in pred]
+            self.exact_i = [var[:, 1] for var in exact]
+        elif viz_var == "p":
+            self.pred_i = [var[:, 2] for var in pred]
+            self.exact_i = [var[:, 2] for var in exact]
+        elif viz_var == "v":
+            self.pred_i = [torch.sqrt(var[:, 0]**2 + var[:,1]**2)  for var in pred]
+            self.exact_i = [torch.sqrt(var[:, 0]**2 + var[:,1]**2) for var in exact]
+        else:
+            raise ValueError(f"Invalid viz_var {viz_var}")
+
         self.graphs_i = self.graphs[start:end]
         self.faces_i = self.faces[start:end]
 
@@ -366,7 +380,7 @@ def animate_rollout(rollout, C: Constants):
         var_path = f"{path}/{viz_var}"
         os.makedirs(var_path, exist_ok=True)
         for j in range(C.num_test_samples):
-            rollout.init_animation(idx=rollout.var_identifier[viz_var], start=j * (C.num_test_time_steps - 1),
+            rollout.init_animation(viz_var=viz_var, start=j * (C.num_test_time_steps - 1),
                                    end=(j + 1) * (C.num_test_time_steps - 1))
             ani = animation.FuncAnimation(
                 rollout.fig,
@@ -376,6 +390,7 @@ def animate_rollout(rollout, C: Constants):
             )
             ani_path = f"{var_path}/sim{j+rollout.C.test_start_sample}.gif"
             ani.save(ani_path)
+            matplotlib.pyplot.close()
 
 
 """
@@ -402,7 +417,7 @@ def evaluate_model(C: Constants, intermediate_eval: bool = False):
             animate_rollout(rollout, C)
 
 
-def animate_dataset(dataset: str, C: Constants = Constants(), vars = ("u",), ranges = [0]):
+def animate_dataset(dataset: str, C: Constants = Constants(), vars = ("v",), ranges = [0]):
     for range in ranges:
         print("Range: ", range)
         start_sim = range[0] if isinstance(range, list) else range
@@ -421,7 +436,7 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars = ("u",), ran
         rollout.predict()
         animate_rollout(rollout, C)
 
-#animate_dataset("standard_cylinder", ranges = [[0,5]])
+#animate_dataset("test", ranges = [[0,9]], vars = ("v",))
 
 """
     Evaluate each given model group on each given dataset.
