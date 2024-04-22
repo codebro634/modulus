@@ -2,8 +2,47 @@
 
 import os
 import numpy as np
-
+import json
 from modulus.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
+
+
+"""
+    Merge all metadata.json files in a folder into a single metadata_list.json file.
+    
+    Args:
+        folder: Folder containing the metadata files.
+        output_folder: Folder to save the merged metadata.
+        mesh_range: Int Tuple that indicates the range of metadata files to merge. If None, all metadata files are merged.
+        ignore_indices: List of indices to ignore when merging the metadata files.
+"""
+def merge_mesh_metadata(folder, output_folder, mesh_range=None, ignore_indices = []):
+
+    #Gather all metdata file paths
+    metadata_paths = []
+    for root, dirs, files in os.walk(folder):
+        if "metadata.json" in files:
+            metadata_paths.append(os.path.join(root, "metadata.json"))
+    #metadata_paths.sort()
+    if mesh_range is not None:
+        metadata_paths = metadata_paths[mesh_range[0]:mesh_range[1]]
+
+    #Merge metadata
+    meshes_metadata = []
+
+    for i,path in enumerate(metadata_paths):
+        if i in ignore_indices:
+            continue
+        with open(path, 'r') as file:
+            metadata = json.load(file)
+        print(metadata["nodes"])
+        meshes_metadata.append(metadata)
+
+    #Save into output folder/metadata_list.json as json
+    os.makedirs(output_folder, exist_ok=True)
+    with open(os.path.join(output_folder,"test_meshes_metadata.json"), 'w') as file:
+        json.dump(meshes_metadata, file)
+
+#merge_mesh_metadata("meshes/mixed_all", "../cylinder_flow_mgn/raw_dataset/cylinder_flow/mixed_all", mesh_range=[50,100], ignore_indices=[0,1,2,3,4,5,6,7,15])
 
 """
     Repeat a range of a dataset n times and save it to a new folder.
@@ -62,6 +101,7 @@ def merge_simulation_data(folders, output_folder, range_to_merge=None):
             for file in files:
                 if file.endswith('.npy'):
                     sim_paths.append(os.path.join(root, file))
+
     #Load npy data
     merged_sims = []
     for path in sim_paths:
@@ -73,9 +113,9 @@ def merge_simulation_data(folders, output_folder, range_to_merge=None):
     os.makedirs(output_folder, exist_ok=True)
     np.save(os.path.join(output_folder, "merged.npy"), merged_sims)
 
-#out = "../cylinder_flow_mgn/raw_dataset/cylinder_flow/merged/"
-#folders = ["../cylinder_flow_mgn/raw_dataset/cylinder_flow/mixed_all/"]
-#merge_simulation_data(folders, out, range_to_merge=[400, 440])
+# out = "../cylinder_flow_mgn/raw_dataset/cylinder_flow/merged/"
+# folders = ["../cylinder_flow_mgn/raw_dataset/cylinder_flow/cylinder_tri_quad"]
+# merge_simulation_data(folders, out, range_to_merge=[400, 440])
 
 #parser = argparse.ArgumentParser()
 #parser.add_argument("--out",  help="Output folder.")

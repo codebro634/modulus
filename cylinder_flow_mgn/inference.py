@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 # File modified by Robin Schmöcker, Leibniz University Hannover, Germany, Copyright (c) 2024
+from os.path import exists
 
 from dgl.dataloading import GraphDataLoader
 import torch
@@ -31,6 +32,7 @@ from time import time
 import math
 from copy import deepcopy
 import matplotlib
+import json
 
 """
 MGNRollout manages the inference loop for the MeshGraphNet model.
@@ -98,9 +100,9 @@ class MGNRollout:
             )
 
     """
-        Rollout the model and calculate the RMSE for the velocity and pressure fields for 1, 50 and all steps in the loaded dataset.
+        Rollout the model and calculate the RMSE for the velocity and pressure fields for 1, 50 and all steps in the loaded dataset. 
         
-        inter_sim: If not None, then the results will also be logged to 'logs.txt'.
+        inter_sim: If not None, then the results will also be logged to 'logs.txt'. Furthermore, in 'details.json' the results for each individual simulation will be stored.
         
         The results are returned as dictionary.
     """
@@ -110,9 +112,34 @@ class MGNRollout:
             key: value.to(self.device) for key, value in self.dataset.node_stats.items()
         }
 
+        #Prepare list where the results for each individual simulation will be stored
+        sims_results = []
+        if exists(os.path.join(self.C.data_dir, "test_meshes_metadata.json")):
+            with open(os.path.join(self.C.data_dir, "test_meshes_metadata.json"), 'r') as file:
+                sims_results = json.load(file)
+            sims_results = sims_results[self.C.test_start_sample:self.C.test_start_sample+self.C.num_test_samples]
+            if self.C.verbose:
+                print(f"Loaded mesh-metdata.")
+
+        def add_sim_result(i, vse, pse):
+            vmse = vse / self.C.num_test_time_steps
+            pmse = pse / self.C.num_test_time_steps
+            num = i // (self.C.num_test_time_steps - 1) - 1
+            if num == len(sims_results): #In this case, no mesh metadata available
+                sims_results.append({})
+            else:
+                assert self.pred[i-1].shape[0] == sims_results[num]["nodes"]
+            sims_results[num]["velocity_rmse"] = math.sqrt(vmse)
+            sims_results[num]["velocity_mse"] = vmse
+            sims_results[num]["pressure_rmse"] = math.sqrt(pmse)
+            sims_results[num]["pressure_mse"] = pmse
+
+            if self.C.verbose:
+               print(f"RMSE sim {num}. Velocity: {sims_results[num]['velocity_rmse']} | Pressure: {sims_results[num]['pressure_rmse']}")
+
         #Indices. 0: velocity, 1: pressure
         mse = torch.nn.MSELoss()
-        mse_1_step, mse_50_step, mse_all_step, vmse_last_sim = np.zeros(2), np.zeros(2), np.zeros(2), 0
+        mse_1_step, mse_50_step, mse_all_step, vse_last_sim, pse_last_sim = np.zeros(2), np.zeros(2), np.zeros(2), 0, 0
         num_steps, num_50_steps = 0, 0
         t1step, t50step, tallstep = 0, 0, 0
 
@@ -139,12 +166,11 @@ class MGNRollout:
             if i % (self.C.num_test_time_steps - 1) != 0: #If = 0, then new graph starts
                 invar[:, 0:2] = self.pred[i - 1][:, 0:2].clone()
                 i += 1
-            else:
-                if self.C.verbose and i > 0:
-                    rmse_last_sim = math.sqrt(vmse_last_sim / self.C.num_test_time_steps)
-                    print(f"RMSE sim {(i // (self.C.num_test_time_steps-1)) - 1} = {rmse_last_sim}")
-                    vmse_last_sim = 0
-
+            elif i > 0:
+                if inter_sim is None:
+                    add_sim_result(i, vse_last_sim, pse_last_sim)
+                vse_last_sim = 0
+                pse_last_sim = 0
 
             invar[:, 0:2] = self.dataset.normalize_node(
                 invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
@@ -223,7 +249,8 @@ class MGNRollout:
             #Loss calculation
             mse_all_step[0] += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item() #Velocity prediction
             mse_all_step[1] += mse(self.pred[-1][:, 2], self.exact[-1][:, 2]).item() #Pressure
-            vmse_last_sim += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
+            vse_last_sim += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
+            pse_last_sim += mse(self.pred[-1][:, 2], self.exact[-1][:, 2]).item()
             tallstep += dt_allstep if self.model is not None else 0
 
             if i % self.C.num_test_time_steps < 50:
@@ -249,6 +276,9 @@ class MGNRollout:
         t50step /= num_50_steps
         tallstep /= num_steps
 
+        if inter_sim is None:
+            add_sim_result(num_steps, vse_last_sim, pse_last_sim)
+
         result_dict = {
                     f"Model {self.C.load_name} checkpoint": self.C.ckp,
                     "RMSE (velo) 1 step": rmse_1_step[0],
@@ -273,6 +303,12 @@ class MGNRollout:
                     file.write(out_str+"\n")
                     if self.C.verbose:
                         print(out_str, flush=True)
+
+            details_name = "details.json"
+            if self.C.verbose:
+                print(f"Saving individual simulation results to {details_name}")
+            with open(os.path.join(self.C.ckpt_path, self.C.save_name, details_name), 'w') as file:
+                json.dump(sims_results, file)
 
         else:
             if self.C.verbose:
@@ -430,13 +466,12 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars = ("v",), ran
         C.num_test_samples = (1+range[1]-range[0]) if isinstance(range, list) else 1
         C.animate = True
         C.test_start_sample = start_sim
-
         #Rollout and animate simulations
         rollout = MGNRollout(C, animate_only=True)
         rollout.predict()
         animate_rollout(rollout, C)
 
-#animate_dataset("test", ranges = [[0,9]], vars = ("v",))
+#animate_dataset("cylinder_tri_quad", ranges = [[0,39]], vars = ("v",))
 
 """
     Evaluate each given model group on each given dataset.
