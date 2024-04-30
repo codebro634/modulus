@@ -458,11 +458,13 @@ def evaluate_model(C: Constants, intermediate_eval: bool = False):
 
         # Evaluate model
         rollout = MGNRollout(C)
-        rollout.predict()
+        res_dict = rollout.predict()
 
         # Animate model's predictions on all test graphs
         if C.animate:
             animate_rollout(rollout, C)
+
+        return res_dict
 
 
 def animate_dataset(dataset: str, C: Constants = Constants(), vars=("v",), ranges=[0]):
@@ -511,7 +513,7 @@ def pairwise_evaluation(model_groups: list[list[str] | tuple[list[str], str]], d
             result_sum = {}
             for model in model_group:
                 C.load_name = model
-                C.save_name = model + "_on_" + dataset
+                C.save_name = model + "_on_" + (dataset.split("/")[-1])
                 res_dict = evaluate_model(C, intermediate_eval=False)
                 for key, value in res_dict.items():
                     if key not in result_sum:
