@@ -40,12 +40,14 @@ MGNRollout manages the inference loop for the MeshGraphNet model.
 inter_sim: [None,int]:
  If int, then the model will be evaluated on the inter_sim-th simulation in the test_tiny dataset split.
  If None, then the model will be evaluated on the test dataset split.
- 
+
 animate_only: bool:
  If True, no model will be loaded and only the exact values will be animated.
 """
+
+
 class MGNRollout:
-    def __init__(self,C, inter_sim=None, animate_only=False):
+    def __init__(self, C, inter_sim=None, animate_only=False):
         self.C = C
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -75,7 +77,8 @@ class MGNRollout:
         else:
             # instantiate the model
             self.model = MeshGraphNet(
-                C.num_input_features, C.num_edge_features, C.num_output_features, hidden_dim_edge_processor=C.hidden_dim,
+                C.num_input_features, C.num_edge_features, C.num_output_features,
+                hidden_dim_edge_processor=C.hidden_dim,
                 hidden_dim_processor=C.hidden_dim,
                 hidden_dim_node_encoder=C.hidden_dim,
                 hidden_dim_node_decoder=C.hidden_dim,
@@ -101,47 +104,53 @@ class MGNRollout:
 
     """
         Rollout the model and calculate the RMSE for the velocity and pressure fields for 1, 50 and all steps in the loaded dataset. 
-        
+
         inter_sim: If not None, then the results will also be logged to 'logs.txt'. Furthermore, in 'details.json' the results for each individual simulation will be stored.
-        
+
         The results are returned as dictionary.
     """
+
     def predict(self, inter_sim=None):
         self.pred, self.exact, self.faces, self.graphs, self.pred_one_step = [], [], [], [], []
         stats = {
             key: value.to(self.device) for key, value in self.dataset.node_stats.items()
         }
 
-        #Prepare list where the results for each individual simulation will be stored
+        # Prepare list where the results for each individual simulation will be stored
         sims_results = []
         if exists(os.path.join(self.C.data_dir, "test_meshes_metadata.json")):
             with open(os.path.join(self.C.data_dir, "test_meshes_metadata.json"), 'r') as file:
                 sims_results = json.load(file)
-            sims_results = sims_results[self.C.test_start_sample:self.C.test_start_sample+self.C.num_test_samples]
+            sims_results = sims_results[self.C.test_start_sample:self.C.test_start_sample + self.C.num_test_samples]
             if self.C.verbose:
                 print(f"Loaded mesh-metdata.")
 
-        def add_sim_result(i, vse, pse):
-            vmse = vse / self.C.num_test_time_steps
-            pmse = pse / self.C.num_test_time_steps
-            num = i // (self.C.num_test_time_steps - 1) - 1
-            if num == len(sims_results): #In this case, no mesh metadata available
-                sims_results.append({})
-            else:
-                assert self.pred[i-1].shape[0] == sims_results[num]["nodes"]
-            sims_results[num]["velocity_rmse"] = math.sqrt(vmse)
-            sims_results[num]["velocity_mse"] = vmse
-            sims_results[num]["pressure_rmse"] = math.sqrt(pmse)
-            sims_results[num]["pressure_mse"] = pmse
-
-            if self.C.verbose:
-               print(f"RMSE sim {num}. Velocity: {sims_results[num]['velocity_rmse']} | Pressure: {sims_results[num]['pressure_rmse']}")
-
-        #Indices. 0: velocity, 1: pressure
+        # Indices. 0: velocity, 1: pressure
         mse = torch.nn.MSELoss()
-        mse_1_step, mse_50_step, mse_all_step, vse_last_sim, pse_last_sim = np.zeros(2), np.zeros(2), np.zeros(2), 0, 0
+        mse_1_step_sum, mse_50_step_sum, mse_all_step_sum = np.zeros(2), np.zeros(2), np.zeros(
+            2)  # Cumulative MSE of pressure + velocity for all simulations
+        vse_last_sim_1s, pse_last_sim_1s, vse_last_sim_50s, pse_last_sim_50s, vse_last_sim_allstep, pse_last_sim_allstep = 0, 0, 0, 0, 0, 0  # squared-error for pressure and velocity for the last simulation only
         num_steps, num_50_steps = 0, 0
         t1step, t50step, tallstep = 0, 0, 0
+
+        def add_sim_result(i, vse_1s, pse_1s, vse_50s, pse_50s, vse_all, pse_all):
+            num = i // (self.C.num_test_time_steps - 1) - 1
+            if num == len(sims_results):  # In this case, no mesh metadata available
+                sims_results.append({})
+            else:
+                assert self.pred[i - 1].shape[0] == sims_results[num]["nodes"]
+
+            sims_results[num]["v"] = {"1s": vse_1s / (self.C.num_test_time_steps - 1),
+                                      "50s": vse_50s / min(50, (self.C.num_test_time_steps - 1)),
+                                      "all": vse_all / (self.C.num_test_time_steps - 1)}
+            sims_results[num]["p"] = {"1s": pse_1s / (self.C.num_test_time_steps - 1),
+                                      "50s": pse_50s / min(50, (self.C.num_test_time_steps - 1)),
+                                      "all": pse_all / (self.C.num_test_time_steps - 1)}
+
+            if self.C.verbose:
+                for key in {"v", "p"}:
+                    value = sims_results[num][key]["all"]
+                    print(f"Sim {num} (R)MSE of {key}: {value}, {math.sqrt(value)}")
 
         for i, (graph, cells, mask) in enumerate(self.dataloader):
             graph = graph.to(self.device)
@@ -163,25 +172,25 @@ class MGNRollout:
             # Prepare data for inference step
             invar = graph.ndata["x"].clone()
 
-            if i % (self.C.num_test_time_steps - 1) != 0: #If = 0, then new graph starts
+            if i % (self.C.num_test_time_steps - 1) != 0:  # If = 0, then new graph starts
                 invar[:, 0:2] = self.pred[i - 1][:, 0:2].clone()
                 i += 1
             elif i > 0:
                 if inter_sim is None:
-                    add_sim_result(i, vse_last_sim, pse_last_sim)
-                vse_last_sim = 0
-                pse_last_sim = 0
+                    add_sim_result(i, vse_last_sim_1s, pse_last_sim_1s, vse_last_sim_50s, pse_last_sim_50s,
+                                   vse_last_sim_allstep, pse_last_sim_allstep)
+                mse_1_step_sum += np.array([vse_last_sim_1s, pse_last_sim_1s])
+                mse_50_step_sum += np.array([vse_last_sim_50s, pse_last_sim_50s])
+                mse_all_step_sum += np.array([vse_last_sim_allstep, pse_last_sim_allstep])
+                vse_last_sim_1s, pse_last_sim_1s, vse_last_sim_50s, pse_last_sim_50s, vse_last_sim_allstep, pse_last_sim_allstep = 0, 0, 0, 0, 0, 0
 
-            invar[:, 0:2] = self.dataset.normalize_node(
-                invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
-            )
+            invar[:, 0:2] = self.dataset.normalize_node(invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"])
             one_step_invar = graph.ndata["x"].clone()
-            one_step_invar[:, 0:2] = self.dataset.normalize_node(
-                one_step_invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
-            )
+            one_step_invar[:, 0:2] = self.dataset.normalize_node(one_step_invar[:, 0:2], stats["velocity_mean"],
+                                                                 stats["velocity_std"])
 
             if self.model is not None:
-                #Make prediction and track time
+                # Make prediction and track time
                 start = time()
                 pred_i = self.model(invar, graph.edata["x"], graph).detach()  # predict
                 dt_allstep = time() - start
@@ -246,50 +255,50 @@ class MGNRollout:
                 self.pred.append(self.exact[-1])
                 self.pred_one_step.append(self.exact[-1])
 
-            #Loss calculation
-            mse_all_step[0] += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item() #Velocity prediction
-            mse_all_step[1] += mse(self.pred[-1][:, 2], self.exact[-1][:, 2]).item() #Pressure
-            vse_last_sim += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
-            pse_last_sim += mse(self.pred[-1][:, 2], self.exact[-1][:, 2]).item()
-            tallstep += dt_allstep if self.model is not None else 0
-
+            # Calculate MSE of current sim
+            vse_last_sim_allstep += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
+            pse_last_sim_allstep += mse(self.pred[-1][:, 2], self.exact[-1][:, 2]).item()
+            vse_last_sim_1s += mse(self.pred_one_step[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
+            pse_last_sim_1s += mse(self.pred_one_step[-1][:, 2], self.exact[-1][:, 2]).item()
             if i % self.C.num_test_time_steps < 50:
-                mse_50_step[0] += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
-                mse_50_step[1] += mse(self.pred[-1][:, 2], self.exact[-1][:, 2]).item()
-                num_50_steps += 1
+                vse_last_sim_50s += mse(self.pred[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
+                pse_last_sim_50s += mse(self.pred[-1][:, 2], self.exact[-1][:, 2]).item()
                 t50step += dt_allstep if self.model is not None else 0
-
-            mse_1_step[0] += mse(self.pred_one_step[-1][:, 0:2], self.exact[-1][:, 0:2]).item()
-            mse_1_step[1] += mse(self.pred_one_step[-1][:, 2], self.exact[-1][:, 2]).item()
-            t1step += dt_1step if self.model is not None else 0
-
+                num_50_steps += 1
             num_steps += 1
+            tallstep += dt_allstep if self.model is not None else 0
+            t1step += dt_1step if self.model is not None else 0
 
             self.faces.append(torch.squeeze(cells).numpy())
             self.graphs.append(graph.cpu())
 
-        #Take average and sqrt
-        rmse_1_step = np.sqrt(mse_1_step / num_steps)
-        rmse_50_step = np.sqrt(mse_50_step / num_50_steps)
-        rmse_all_step = np.sqrt(mse_all_step / num_steps)
+        if inter_sim is None:
+            add_sim_result(num_steps, vse_last_sim_1s, pse_last_sim_1s, vse_last_sim_50s, pse_last_sim_50s,
+                           vse_last_sim_allstep, pse_last_sim_allstep)
+
+        mse_1_step_sum += np.array([vse_last_sim_1s, pse_last_sim_1s])
+        mse_50_step_sum += np.array([vse_last_sim_50s, pse_last_sim_50s])
+        mse_all_step_sum += np.array([vse_last_sim_allstep, pse_last_sim_allstep])
+
+        # Take average and sqrt
+        rmse_1_step = np.sqrt(mse_1_step_sum / num_steps)
+        rmse_50_step = np.sqrt(mse_50_step_sum / num_50_steps)
+        rmse_all_step = np.sqrt(mse_all_step_sum / num_steps)
         t1step /= num_steps
         t50step /= num_50_steps
         tallstep /= num_steps
 
-        if inter_sim is None:
-            add_sim_result(num_steps, vse_last_sim, pse_last_sim)
-
         result_dict = {
-                    f"Model {self.C.load_name} checkpoint": self.C.ckp,
-                    "RMSE (velo) 1 step": rmse_1_step[0],
-                    "RMSE (velo) 50 step": rmse_50_step[0],
-                    "RMSE (velo) all step": rmse_all_step[0],
-                    "RMSE (pressure) 1 step": rmse_1_step[1],
-                    "RMSE (pressure) 50 step": rmse_50_step[1],
-                    "RMSE (pressure) all step": rmse_all_step[1],
-                    "Avg time 1 step:": t1step,
-                    "Avg time 50 step": t50step,
-                    "Avg time all steps": tallstep
+            f"Model {self.C.load_name} checkpoint": self.C.ckp,
+            "RMSE (velo) 1 step": rmse_1_step[0],
+            "RMSE (velo) 50 step": rmse_50_step[0],
+            "RMSE (velo) all step": rmse_all_step[0],
+            "RMSE (pressure) 1 step": rmse_1_step[1],
+            "RMSE (pressure) 50 step": rmse_50_step[1],
+            "RMSE (pressure) all step": rmse_all_step[1],
+            "Avg time 1 step:": t1step,
+            "Avg time 50 step": t50step,
+            "Avg time all steps": tallstep
         }
 
         # Print and log results
@@ -300,7 +309,7 @@ class MGNRollout:
             with open(os.path.join(self.C.ckpt_path, self.C.save_name, "log.txt"), 'a') as file:
                 for key, value in result_dict.items():
                     out_str = f"{key}: {value}"
-                    file.write(out_str+"\n")
+                    file.write(out_str + "\n")
                     if self.C.verbose:
                         print(out_str, flush=True)
 
@@ -312,10 +321,10 @@ class MGNRollout:
 
         else:
             if self.C.verbose:
-                print(f"Inter eval sim {inter_sim}: 1step {rmse_1_step[0]}, 50step {rmse_50_step[0]}, allstep {rmse_all_step[0]}")
+                print(
+                    f"Inter eval sim {inter_sim}: 1step {rmse_1_step[0]}, 50step {rmse_50_step[0]}, allstep {rmse_all_step[0]}")
 
         return result_dict
-
 
     def init_animation(self, viz_var, start, end):
         pred = self.pred[start:end]
@@ -330,8 +339,8 @@ class MGNRollout:
             self.pred_i = [var[:, 2] for var in pred]
             self.exact_i = [var[:, 2] for var in exact]
         elif viz_var == "v":
-            self.pred_i = [torch.sqrt(var[:, 0]**2 + var[:,1]**2)  for var in pred]
-            self.exact_i = [torch.sqrt(var[:, 0]**2 + var[:,1]**2) for var in exact]
+            self.pred_i = [torch.sqrt(var[:, 0] ** 2 + var[:, 1] ** 2) for var in pred]
+            self.exact_i = [torch.sqrt(var[:, 0] ** 2 + var[:, 1] ** 2) for var in exact]
         else:
             raise ValueError(f"Invalid viz_var {viz_var}")
 
@@ -362,10 +371,10 @@ class MGNRollout:
 
         vmin = min([np.min(x.numpy()) for x in self.pred_i] + [np.min(x.numpy()) for x in self.exact_i])
         vmax = max([np.max(x.numpy()) for x in self.pred_i] + [np.max(x.numpy()) for x in self.exact_i])
-        #vmin = 0.0
-        #vmax = 2.0
+        # vmin = 0.0
+        # vmax = 2.0
 
-        #Add prediction plot
+        # Add prediction plot
         self.ax[0].cla()
         self.ax[0].set_aspect("equal")
         self.ax[0].set_axis_off()
@@ -375,7 +384,7 @@ class MGNRollout:
         self.ax[0].triplot(triang, "ko-", ms=0.5, lw=0.3)
         self.ax[0].set_title("Modulus MeshGraphNet Prediction", color="white")
 
-        #Add ground truth plot
+        # Add ground truth plot
         self.ax[1].cla()
         self.ax[1].set_aspect("equal")
         self.ax[1].set_axis_off()
@@ -385,7 +394,7 @@ class MGNRollout:
         self.ax[1].triplot(triang, "ko-", ms=0.5, lw=0.3)
         self.ax[1].set_title("Ground Truth", color="white")
 
-        #Add colorbar
+        # Add colorbar
         self.ax[2].cla()
         self.ax[2].set_aspect("equal")
         self.ax[2].set_axis_off()
@@ -424,7 +433,7 @@ def animate_rollout(rollout, C: Constants):
                 frames=(C.num_test_time_steps - 1) // C.frame_skip,
                 interval=C.frame_interval,
             )
-            ani_path = f"{var_path}/sim{j+rollout.C.test_start_sample}.gif"
+            ani_path = f"{var_path}/sim{j + rollout.C.test_start_sample}.gif"
             ani.save(ani_path)
             matplotlib.pyplot.close()
 
@@ -434,67 +443,75 @@ def animate_rollout(rollout, C: Constants):
                        If False, then the model will be evaluated on the entire test dataset split, the result will be 
                        logged into 'logs.txt'. Furthermore, the model's prediction is animated (if set in Constants C ) and saved into 'animations'.
 """
+
+
 def evaluate_model(C: Constants, intermediate_eval: bool = False):
     if intermediate_eval:
-        num_samples = VortexSheddingDataset( name="vortex_shedding_test", data_dir=C.data_dir, split="test_tiny", verbose=False).num_samples
-        for i in range(num_samples): #Get results for each individual simulation
-            rollout = MGNRollout(C,inter_sim=i)
+        num_samples = VortexSheddingDataset(name="vortex_shedding_test", data_dir=C.data_dir, split="test_tiny",
+                                            verbose=False).num_samples
+        for i in range(num_samples):  # Get results for each individual simulation
+            rollout = MGNRollout(C, inter_sim=i)
             rollout.predict(inter_sim=i)
     else:
         if C.verbose:
             print("Rollout started...", flush=True)
 
-        #Evaluate model
+        # Evaluate model
         rollout = MGNRollout(C)
         rollout.predict()
 
-        #Animate model's predictions on all test graphs
+        # Animate model's predictions on all test graphs
         if C.animate:
             animate_rollout(rollout, C)
 
 
-def animate_dataset(dataset: str, C: Constants = Constants(), vars = ("v",), ranges = [0]):
+def animate_dataset(dataset: str, C: Constants = Constants(), vars=("v",), ranges=[0]):
     for range in ranges:
         print("Range: ", range)
         start_sim = range[0] if isinstance(range, list) else range
 
-        #Setup Config
+        # Setup Config
         C = deepcopy(C)
         C.viz_vars = vars
         C.data_dir = "./raw_dataset/cylinder_flow/" + dataset
         C.save_name = dataset
-        C.num_test_samples = (1+range[1]-range[0]) if isinstance(range, list) else 1
+        C.num_test_samples = (1 + range[1] - range[0]) if isinstance(range, list) else 1
         C.animate = True
         C.test_start_sample = start_sim
-        #Rollout and animate simulations
+        # Rollout and animate simulations
         rollout = MGNRollout(C, animate_only=True)
         rollout.predict()
         animate_rollout(rollout, C)
 
-#animate_dataset("cylinder_tri_quad", ranges = [[0,39]], vars = ("v",))
+
+# animate_dataset("cylinder_tri_quad", ranges = [[0,39]], vars = ("v",))
 
 """
     Evaluate each given model group on each given dataset.
-    
+
     model_groups: List of lists of model names. Can also be a tuple with dir from which the normalization data should be taken in second position.
                   The results for all models within one model group will be averaged.
     datasets: List of datasets to be evaluted.
 """
-def pairwise_evaluation(model_groups: list[list[str]|tuple[list[str],str]], datasets: list[str], C: Constants = Constants()):
+
+
+def pairwise_evaluation(model_groups: list[list[str] | tuple[list[str], str]], datasets: list[str],
+                        C: Constants = Constants()):
     C = deepcopy(C)
     C.animate = False
 
     for dataset in datasets:
         C.data_dir = dataset
-        #Evaluate each model within model group and average results
+        # Evaluate each model within model group and average results
         for model_group in model_groups:
-            if isinstance(model_group,tuple):
+            if isinstance(model_group, tuple):
                 model_group, C.norm_data_dir = model_group[0], model_group[1]
             else:
                 C.norm_data_dir = None
             result_sum = {}
             for model in model_group:
                 C.load_name = model
+                C.save_name = model + "_on_" + dataset
                 res_dict = evaluate_model(C, intermediate_eval=False)
                 for key, value in res_dict.items():
                     if key not in result_sum:
@@ -502,13 +519,12 @@ def pairwise_evaluation(model_groups: list[list[str]|tuple[list[str],str]], data
                     else:
                         result_sum[key] += [value]
 
-            #Print results
+            # Print results
             print(f"-------{C.load_name} --> {C.data_dir}----------")
             for key, value in result_sum.items():
-                minv, maxx,avg = min(value), max(value), sum(value)/len(value)
-                max_dist_avg = max(abs(minv-avg),abs(maxx-avg))
-                print(f"{key} | Min:{min(value)} Max:{max(value)} Avg:{sum(value)/len(value)} Range:{max_dist_avg}")
+                minv, maxx, avg = min(value), max(value), sum(value) / len(value)
+                max_dist_avg = max(abs(minv - avg), abs(maxx - avg))
+                print(f"{key} | Min:{min(value)} Max:{max(value)} Avg:{sum(value) / len(value)} Range:{max_dist_avg}")
 
-
-#Non existent path => newly initialized model
-#pairwise_evaluation([["model1","model2"]],["./raw_dataset/cylinder_flow/cylinder_flow"]) #Example usage
+# Non existent path => newly initialized model
+# pairwise_evaluation([["model1","model2"]],["./raw_dataset/cylinder_flow/cylinder_flow"]) #Example usage
