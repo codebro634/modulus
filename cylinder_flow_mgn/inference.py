@@ -524,9 +524,11 @@ def pairwise_evaluation(model_groups: list[list[str] | tuple[list[str], str]], d
             # Print results
             print(f"-------{C.load_name} --> {C.data_dir}----------")
             for key, value in result_sum.items():
+                if not isinstance(value[0], (int, float)):
+                    continue
                 minv, maxx, avg = min(value), max(value), sum(value) / len(value)
                 max_dist_avg = max(abs(minv - avg), abs(maxx - avg))
                 print(f"{key} | Min:{min(value)} Max:{max(value)} Avg:{sum(value) / len(value)} Range:{max_dist_avg}")
 
 # Non existent path => newly initialized model
-# pairwise_evaluation([["model1","model2"]],["./raw_dataset/cylinder_flow/cylinder_flow"]) #Example usage
+# pairwise_evaluation([["model1","model2"]],["./raw_dataset/cylinder_flow/standard_cylinder"]) #Example usage
