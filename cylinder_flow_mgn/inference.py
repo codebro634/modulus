@@ -498,9 +498,9 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars=("v",), range
 
 
 def pairwise_evaluation(model_groups: list[list[str] | tuple[list[str], str]], datasets: list[str],
-                        C: Constants = Constants()):
+                        C: Constants = Constants(), animate: bool = False):
     C = deepcopy(C)
-    C.animate = False
+    C.animate = animate
 
     for dataset in datasets:
         C.data_dir = dataset
@@ -531,4 +531,13 @@ def pairwise_evaluation(model_groups: list[list[str] | tuple[list[str], str]], d
                 print(f"{key} | Min:{min(value)} Max:{max(value)} Avg:{sum(value) / len(value)} Range:{max_dist_avg}")
 
 # Non existent path => newly initialized model
-# pairwise_evaluation([["model1","model2"]],["./raw_dataset/cylinder_flow/standard_cylinder"]) #Example usage
+# data_paths = ["./raw_dataset/cylinder_flow/standard_cylinder", "./raw_dataset/cylinder_flow/2cylinders", "./raw_dataset/cylinder_flow/cylinder_stretch",
+#               "./raw_dataset/cylinder_flow/cylinder_tri_quad", "./raw_dataset/cylinder_flow/mixed_all"]
+# fresh_models = ["fresh1","fresh2","fresh3"]
+# standard_cylinder_model = (["standard_cylinder1","standard_cylinder2","standard_cylinder3"], "./raw_dataset/cylinder_flow/standard_cylinder")
+# cylinder_stretch_model = (["stretch1","stretch2","stretch3"], "./raw_dataset/cylinder_flow/cylinder_stretch")
+# cylinder_tri_quad_model = (["ctq1","ctq2","ctq3"], "./raw_dataset/cylinder_flow/cylinder_tri_quad")
+# mixed_all_model = (["mixed1","mixed2","mixed3"], "./raw_dataset/cylinder_flow/mixed_all")
+# cyl2_model = (["2cyl_1","2cyl_2","2cyl_3"], "./raw_dataset/cylinder_flow/2cylinders")
+#
+# pairwise_evaluation([standard_cylinder_model,cylinder_stretch_model,cylinder_tri_quad_model,mixed_all_model,cyl2_model],data_paths, animate=True)

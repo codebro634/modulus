@@ -56,17 +56,32 @@ class LogAnalysis:
             if shape_filter is None or shape_filter in d["shapes"]:
                 self.data[d["n"]].append(d[quantity][error])
 
-test = LogAnalysis(["checkpoints/log_test/details.json","checkpoints/log_test/details.json"])
 
-test.select_data(quantity="v", error="1s")
-print(test.get_mse(take_root=True))
-test.select_data(quantity="v", error="50s")
-print(test.get_mse(take_root=True))
-test.select_data(quantity="p", error="1s")
-print(test.get_mse(take_root=True))
-test.select_data(quantity="p", error="50s")
-print(test.get_mse(take_root=True))
-test.select_data(quantity="v", error="all")
-print(test.get_mse(take_root=True))
-test.select_data(quantity="p", error="all")
-print(test.get_mse(take_root=True))
+def latex_print(logs,quantity="v", decimal_places=2):
+
+    log_object = LogAnalysis(logs)
+    log_object.select_data(quantity=quantity, error="all")
+    e_all = log_object.get_mse(take_root=True)
+    log_object.select_data(quantity=quantity, error="1s")
+    e_1s = log_object.get_mse(take_root=True)
+    log_object.select_data(quantity=quantity, error="50s")
+    e_50s = log_object.get_mse(take_root=True)
+    print(f"${round(e_1s[0],decimal_places)} \pm {round(e_1s[1],decimal_places)}$ & ${round(e_50s[0],decimal_places)}"
+          f" \pm {round(e_50s[1],decimal_places)}$ & ${round(e_all[0],decimal_places)} \pm {round(e_all[1],decimal_places)}")
+
+#latex_print(["checkpoints/log_test/details.json","checkpoints/log_test/details.json"])
+
+# test = LogAnalysis(["checkpoints/log_test/details.json","checkpoints/log_test/details.json"])
+#
+# test.select_data(quantity="v", error="1s")
+# print(test.get_mse(take_root=True))
+# test.select_data(quantity="v", error="50s")
+# print(test.get_mse(take_root=True))
+# test.select_data(quantity="p", error="1s")
+# print(test.get_mse(take_root=True))
+# test.select_data(quantity="p", error="50s")
+# print(test.get_mse(take_root=True))
+# test.select_data(quantity="v", error="all")
+# print(test.get_mse(take_root=True))
+# test.select_data(quantity="p", error="all")
+# print(test.get_mse(take_root=True))
