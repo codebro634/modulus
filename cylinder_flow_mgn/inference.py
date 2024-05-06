@@ -541,3 +541,11 @@ def pairwise_evaluation(model_groups: list[list[str] | tuple[list[str], str]], d
 # cyl2_model = (["2cyl_1","2cyl_2","2cyl_3"], "./raw_dataset/cylinder_flow/2cylinders")
 #
 # pairwise_evaluation([["teest"],standard_cylinder_model,cylinder_stretch_model,cylinder_tri_quad_model,mixed_all_model,cyl2_model, fresh_models],["./raw_dataset/cylinder_flow/mixed_all"], animate=False)
+
+models = [["concsum3/checkpoints",{"agg": "concat_sum"}],["sum_01_3/checkpoints",{"agg": "sum", "weight":0.1}],["concat3/checkpoints",{"agg": "concat"}],["standard3/checkpoints",None]]
+
+for model in models:
+    C = Constants()
+    C.num_test_time_steps = 2
+    C.multi_hop_edges = model[1]
+    pairwise_evaluation([[model[0]]], ["./raw_dataset/cylinder_flow/deepmind"], animate=False, C= C)
