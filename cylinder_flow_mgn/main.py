@@ -49,7 +49,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_samples', type=int, default=C.num_training_samples, help='Number of different simulations used in training.')
     parser.add_argument('--num_time_steps', type=int, default=C.num_training_time_steps, help='Number of time steps per simulation in training.')
     parser.add_argument('--first_step', type=int, default=C.first_step, help='Simulation time step to start from.')
-    parser.add_argument('--inf_start_sample', type=int, default=C.first_step, help='Which simulation to start the evaluation from.')
+    parser.add_argument('--inf_start_sample', type=int, default=C.test_start_sample, help='Which simulation to start the evaluation from.')
     parser.add_argument('--num_inf_samples', type=int, default=C.num_test_samples, help='Number of different simulations used for inference.')
     parser.add_argument('--num_inf_time_steps', type=int, default=C.num_test_time_steps, help='Number of time steps per simulation used for inference.')
     parser.add_argument('--multihop', default="none", help='Which multihop method to use. Choose from {none,sum,concat_sum,concat}.')
