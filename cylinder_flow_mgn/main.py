@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/deepmind", help='Path to the dataset relative to the folder vortex_shedding_mgn.')
+    parser.add_argument('--data_dir', default="./raw_dataset/cylinder_flow/standard_cylinder", help='Path to the dataset relative to the folder vortex_shedding_mgn.')
     parser.add_argument('--load_name', default="model", help='Name of the model to load/init.')
     parser.add_argument('--save_name', default="model", help='Name the model will be saved under.')
     parser.add_argument('--inter_eval', action='store_true', help='Does tiny intermediate evaluations after each epoch.')
@@ -49,6 +49,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_samples', type=int, default=C.num_training_samples, help='Number of different simulations used in training.')
     parser.add_argument('--num_time_steps', type=int, default=C.num_training_time_steps, help='Number of time steps per simulation in training.')
     parser.add_argument('--first_step', type=int, default=C.first_step, help='Simulation time step to start from.')
+    parser.add_argument('--inf_start_sample', type=int, default=C.first_step, help='Which simulation to start the evaluation from.')
     parser.add_argument('--num_inf_samples', type=int, default=C.num_test_samples, help='Number of different simulations used for inference.')
     parser.add_argument('--num_inf_time_steps', type=int, default=C.num_test_time_steps, help='Number of time steps per simulation used for inference.')
     parser.add_argument('--multihop', default="none", help='Which multihop method to use. Choose from {none,sum,concat_sum,concat}.')
@@ -70,6 +71,7 @@ if __name__ == "__main__":
     C.lr_decay_rate = args.lr_decay
     C.first_step = args.first_step
     C.num_training_samples = args.num_samples
+    C.test_start_sample = args.inf_start_sample
     C.epochs = args.epochs
     C.data_dir = args.data_dir
     C.save_name = args.save_name

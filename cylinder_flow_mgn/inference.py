@@ -486,7 +486,7 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars=("v",), range
         animate_rollout(rollout, C)
 
 
-# animate_dataset("cylinder_tri_quad", ranges = [[0,39]], vars = ("v",))
+# animate_dataset("mixed_all", ranges = [[0,39]], vars = ("v",))
 
 """
     Evaluate each given model group on each given dataset.
@@ -500,7 +500,6 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars=("v",), range
 def pairwise_evaluation(model_groups: list[list[str] | tuple[list[str], str]], datasets: list[str],
                         C: Constants = Constants(), animate: bool = False):
     C = deepcopy(C)
-    C.animate = animate
 
     for dataset in datasets:
         C.data_dir = dataset
@@ -511,7 +510,8 @@ def pairwise_evaluation(model_groups: list[list[str] | tuple[list[str], str]], d
             else:
                 C.norm_data_dir = None
             result_sum = {}
-            for model in model_group:
+            for i, model in enumerate(model_group):
+                C.animate = (i == 0) and animate
                 C.load_name = model
                 C.save_name = model + "_on_" + (dataset.split("/")[-1])
                 res_dict = evaluate_model(C, intermediate_eval=False)
@@ -540,4 +540,4 @@ def pairwise_evaluation(model_groups: list[list[str] | tuple[list[str], str]], d
 # mixed_all_model = (["mixed1","mixed2","mixed3"], "./raw_dataset/cylinder_flow/mixed_all")
 # cyl2_model = (["2cyl_1","2cyl_2","2cyl_3"], "./raw_dataset/cylinder_flow/2cylinders")
 #
-# pairwise_evaluation([standard_cylinder_model,cylinder_stretch_model,cylinder_tri_quad_model,mixed_all_model,cyl2_model],data_paths, animate=True)
+# pairwise_evaluation([["teest"],standard_cylinder_model,cylinder_stretch_model,cylinder_tri_quad_model,mixed_all_model,cyl2_model, fresh_models],["./raw_dataset/cylinder_flow/mixed_all"], animate=False)
