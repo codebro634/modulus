@@ -30,7 +30,7 @@ python examples/cfd/vortex_sheddin_mgn/main.py --load_name <str> --save_name <st
 - `weight`: The weight to be used for Spillover if mode=sum is chosen. Default: 0.5.
 - `lr_decay`: Learning rate decay factor. Default: 0.82540418526. lr at epoch i = lr * lr_decay^(i-1).
 - `train`: If set, the MGN is trained.
-- `eval`: If set, the MGN is trained. If neither train nor eval is set, nothing happens.
+- `eval`: If set, the MGN is evaluated. If train is also set, then evaluation takes places after training. If neither train nor eval is set, nothing happens.
 - `animate`: Whether to animate rollout predictions if --eval has been set.
 - `verbose`: If set, verbosity is activated.
 - `inter_eval`: If set, a very small-scale evaluation is performed after every epoch on the test_tiny split.
