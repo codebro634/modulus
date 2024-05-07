@@ -10,11 +10,11 @@ Every file that has been modified or added is marked with a comment at the top o
 # Run Spillover / Unmodified MGN
 
 ```
-python examples/cfd/vortex_sheddin_mgn/main.py --load_name <str> --save_name <str> --data_dir <str> [--ckp <ckp> --epochs <int> --hidden <int> --num_samples <int> --num_time_steps <int> --first_step <int> --num_inf_samples <int> --num_inf_time_steps <int> --inf_start_sample <int> --multihop <str> --weight <float> --lr_decay <float> --fresh_scheduler --train --eval --verbose --inter_eval --animate]
+python cylinder_flow_mgn/main.py --load_name <str> --save_name <str> --data_dir <str> [--ckp <ckp> --epochs <int> --hidden <int> --num_samples <int> --num_time_steps <int> --first_step <int> --num_inf_samples <int> --num_inf_time_steps <int> --inf_start_sample <int> --multihop <str> --weight <float> --lr_decay <float> --fresh_scheduler --train --eval --verbose --inter_eval --animate]
 ```
 
 - `load_name`: Name of the model to load. If this model is not saved under `checkpoints/` a fresh model is initialized.
-- `save_name`: Under which name the model will be saved. The results will be saved under checkpoints/`save_name`.
+- `save_name`: Under which name the model will be saved. The results/logs/animations will be saved under checkpoints/`save_name`.
 - `data_dir`: Path (relative to examples/cfd/vortex_shedding_mgn) to directory containing the dataset.
 - `num_inf_samples`: Number of different simulations used for inference.
 - `num_inf_time_steps`: Number of time steps per simulation used for inference.
@@ -30,17 +30,20 @@ python examples/cfd/vortex_sheddin_mgn/main.py --load_name <str> --save_name <st
 - `weight`: The weight to be used for Spillover if mode=sum is chosen. Default: 0.5.
 - `lr_decay`: Learning rate decay factor. Default: 0.82540418526. lr at epoch i = lr * lr_decay^(i-1).
 - `train`: If set, the MGN is trained.
-- `eval`: If set, the MGN is evaluated. If train is also set, then evaluation takes places after training. If neither train nor eval is set, nothing happens.
-- `inf_start_sample`: Which simulation from the test dataset to start the evaluation from if eval has been set. Default: 0.
-- `animate`: Whether to animate rollout predictions if --eval has been set.
+- `eval`: If set, the MGN is evaluated. If `train` is also set, then evaluation takes places after training. If neither `train` nor `eval` is set, nothing happens.
+- `inf_start_sample`: Which simulation from the test dataset to start the evaluation from if `eval` has been set. Default: 0.
+- `animate`: Whether to animate rollout predictions if `eval` has been set.
 - `verbose`: If set, verbosity is activated.
 - `inter_eval`: If set, a very small-scale evaluation is performed after every epoch on the test_tiny split.
 - `fresh_optim`: If set, the learning rate scheduler and the optimizer is newly initialized and training will take place for `epochs` epochs even if a checkpoint is loaded.
 
+### Animations
+Note that by setting only the `eval` flag, it is possible to directly evaluate pretrained models. It is possible to simulate a single simulation from the test split, say the `n`-th simulation by setting `inf_start_sample` = `n` and `num_inf_samples' = `1`.
+
 # Generate meshes
 
 ```
-python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--width <float> --height <float> --ox <float> --oy <float> --osize <float> --inflow_peak_mean <float> --inflow_peak_max_deviation <float> --two_obj_prob <float> --rotate --stretch --circs --tris --quads]
+python data_generation/meshDatasetMaker.py --name <str> --num_meshes <int> [--width <float> --height <float> --ox <float> --oy <float> --osize <float> --inflow_peak_mean <float> --inflow_peak_max_deviation <float> --two_obj_prob <float> --rotate --stretch --circs --tris --quads]
 ```
 - `name`: Name of the mesh dataset. The generated meshes are saved into meshes/`name`.
 - `num_meshes`: Number of meshes to generate.
@@ -63,7 +66,7 @@ python dataGeneration/meshDatasetMaker.py --name <str> --num_meshes <int> [--wid
 # Simulate flow on a mesh
 
 ```
-python dataGeneration/generator.py --dir <str> --mesh <str> [--t <float> --dt_sim <float> --dt_real <float> --mesh_range <tuple(int,int)> --vlevel <int> --cleanup_dir <str> --num_frames <int> --dont_save --qoi]
+python data_generation/generator.py --dir <str> --mesh <str> [--t <float> --dt_sim <float> --dt_real <float> --mesh_range <tuple(int,int)> --vlevel <int> --cleanup_dir <str> --num_frames <int> --dont_save --qoi]
 ```
 - `dir`: Name of the dir to save the simulation results into.
 - `mesh`: Path to the mesh, the simulation is supposed to be run on. Can also be a directory. In that case, all meshes within all subfolders of that directory are simulated.
@@ -82,7 +85,7 @@ python dataGeneration/generator.py --dir <str> --mesh <str> [--t <float> --dt_si
 # Analyze dataset (Used for reverse-engineering parameters)
 
 ```
-python examples/cfd/vortex_shedding_mgn/datasetAnalysis.py --dataset <str> --split <str> [--graph_num <int> --time_step <int>]
+python cylinder_flow_mgn/datasetAnalysis.py --dataset <str> --split <str> [--graph_num <int> --time_step <int>]
 ```
 - `dataset`: Path to the dataset to be analyzed.
 - `split`: Which split inside the dataset is to be analyzed.
