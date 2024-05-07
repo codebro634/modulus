@@ -10,7 +10,7 @@ Every file that has been modified or added is marked with a comment at the top o
 # Run Spillover / Unmodified MGN
 
 ```
-python examples/cfd/vortex_sheddin_mgn/main.py --load_name <str> --save_name <str> --data_dir <str> [--ckp <ckp> --epochs <int> --hidden <int> --num_samples <int> --num_time_steps <int> --first_step <int> --num_inf_samples <int> --num_inf_time_steps <int> --multihop <str> --weight <float> --lr_decay <float> --fresh_scheduler --train --eval --verbose --inter_eval --animate]
+python examples/cfd/vortex_sheddin_mgn/main.py --load_name <str> --save_name <str> --data_dir <str> [--ckp <ckp> --epochs <int> --hidden <int> --num_samples <int> --num_time_steps <int> --first_step <int> --num_inf_samples <int> --num_inf_time_steps <int> --inf_start_sample <int> --multihop <str> --weight <float> --lr_decay <float> --fresh_scheduler --train --eval --verbose --inter_eval --animate]
 ```
 
 - `load_name`: Name of the model to load. If this model is not saved under `checkpoints/` a fresh model is initialized.
@@ -31,6 +31,7 @@ python examples/cfd/vortex_sheddin_mgn/main.py --load_name <str> --save_name <st
 - `lr_decay`: Learning rate decay factor. Default: 0.82540418526. lr at epoch i = lr * lr_decay^(i-1).
 - `train`: If set, the MGN is trained.
 - `eval`: If set, the MGN is evaluated. If train is also set, then evaluation takes places after training. If neither train nor eval is set, nothing happens.
+- `inf_start_sample`: Which simulation from the test dataset to start the evaluation from if eval has been set. Default: 0.
 - `animate`: Whether to animate rollout predictions if --eval has been set.
 - `verbose`: If set, verbosity is activated.
 - `inter_eval`: If set, a very small-scale evaluation is performed after every epoch on the test_tiny split.
