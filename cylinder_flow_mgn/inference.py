@@ -426,6 +426,19 @@ def animate_rollout(rollout, C: Constants):
         var_path = f"{path}/{viz_var}"
         os.makedirs(var_path, exist_ok=True)
         for j in range(C.num_test_samples):
+            #Png
+            rollout.init_animation(viz_var=viz_var, start=(j + 1) * (C.num_test_time_steps - 1)-C.frame_skip,
+                                   end=(j + 1) * (C.num_test_time_steps - 1) - C.frame_skip + 1)
+            ani = animation.FuncAnimation(
+                rollout.fig,
+                rollout.animate,
+                frames=1,
+                interval=1,
+            )
+            ani_path = f"{var_path}/sim{j + rollout.C.test_start_sample}.png"
+            ani.save(ani_path)
+
+            #Gif
             rollout.init_animation(viz_var=viz_var, start=j * (C.num_test_time_steps - 1),
                                    end=(j + 1) * (C.num_test_time_steps - 1))
             ani = animation.FuncAnimation(
@@ -436,6 +449,7 @@ def animate_rollout(rollout, C: Constants):
             )
             ani_path = f"{var_path}/sim{j + rollout.C.test_start_sample}.gif"
             ani.save(ani_path)
+
             matplotlib.pyplot.close()
 
 
@@ -487,7 +501,7 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars=("v",), range
         animate_rollout(rollout, C)
 
 
-# animate_dataset("mixed_all", ranges = [[0,0]], vars = ("v",))
+#animate_dataset("2cylinders", ranges = [[10,10]], vars = ("v",))
 
 """
     Evaluate each given model group on each given dataset.
@@ -554,7 +568,8 @@ data_paths = ["./raw_dataset/cylinder_flow/standard_cylinder", "./raw_dataset/cy
 models = ["standard_cylinder3", "stretch1","ctq1","2cyl_1","mixed1"]
 anims = [(models[1],data_paths[2],6) , (models[0],data_paths[0],28), (models[0],data_paths[0],10), (models[0],data_paths[0],1),
          (models[0],data_paths[0],16), (models[0],data_paths[0],3), (models[1],data_paths[2],15), (models[2],data_paths[3],3), (models[2],data_paths[3],17),
-         (models[3],data_paths[1],4), (models[4],data_paths[4],25), (models[0],data_paths[3],13), (models[0],data_paths[1],10), (models[0],data_paths[2],25)]
+         (models[3],data_paths[1],4), (models[4],data_paths[4],25), (models[0],data_paths[3],13), (models[0],data_paths[1],10), (models[0],data_paths[2],25),
+         (models[2],data_paths[3],16),(models[0],data_paths[3],16),(models[0],data_paths[3],17),(models[0],data_paths[3],3),(models[0],data_paths[1],9),(models[0],data_paths[1],10)]
 
 for model, data_path, sim in anims:
     C = Constants()
