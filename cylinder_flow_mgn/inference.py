@@ -349,7 +349,7 @@ class MGNRollout:
 
         # fig configs
         plt.rcParams["image.cmap"] = "inferno"
-        self.fig, self.ax = plt.subplots(3, 1, figsize=(16, 9), gridspec_kw={'height_ratios': [1, 1, 0.1]})
+        self.fig, self.ax = plt.subplots(3, 1, figsize=(16, 9), gridspec_kw={'height_ratios': [1, 1, 0.15]})
 
         # Set background color to white
         self.fig.set_facecolor("white")
@@ -404,6 +404,7 @@ class MGNRollout:
         cbar_ax = divider.append_axes("top", size="50%", pad=-0.5)  # Position the colorbar below the last subplot
         self.fig.colorbar(sm, cax=cbar_ax, orientation='horizontal')
         sm.set_clim(vmin, vmax)
+        cbar_ax.tick_params(labelsize=40)
 
         # Adjust subplots to minimize empty space
         self.ax[0].set_aspect("auto", adjustable="box")
@@ -486,7 +487,7 @@ def animate_dataset(dataset: str, C: Constants = Constants(), vars=("v",), range
         animate_rollout(rollout, C)
 
 
-# animate_dataset("mixed_all", ranges = [[0,39]], vars = ("v",))
+# animate_dataset("mixed_all", ranges = [[0,0]], vars = ("v",))
 
 """
     Evaluate each given model group on each given dataset.
@@ -531,8 +532,8 @@ def pairwise_evaluation(model_groups: list[list[str] | tuple[list[str], str]], d
                 print(f"{key} | Min:{min(value)} Max:{max(value)} Avg:{sum(value) / len(value)} Range:{max_dist_avg}")
 
 # Non existent path => newly initialized model
-# data_paths = ["./raw_dataset/cylinder_flow/standard_cylinder", "./raw_dataset/cylinder_flow/2cylinders", "./raw_dataset/cylinder_flow/cylinder_stretch",
-#               "./raw_dataset/cylinder_flow/cylinder_tri_quad", "./raw_dataset/cylinder_flow/mixed_all"]
+data_paths = ["./raw_dataset/cylinder_flow/standard_cylinder", "./raw_dataset/cylinder_flow/2cylinders", "./raw_dataset/cylinder_flow/cylinder_stretch",
+               "./raw_dataset/cylinder_flow/cylinder_tri_quad", "./raw_dataset/cylinder_flow/mixed_all"]
 # fresh_models = ["fresh1","fresh2","fresh3"]
 # standard_cylinder_model = (["standard_cylinder1","standard_cylinder2","standard_cylinder3"], "./raw_dataset/cylinder_flow/standard_cylinder")
 # cylinder_stretch_model = (["stretch1","stretch2","stretch3"], "./raw_dataset/cylinder_flow/cylinder_stretch")
@@ -542,10 +543,21 @@ def pairwise_evaluation(model_groups: list[list[str] | tuple[list[str], str]], d
 #
 # pairwise_evaluation([["teest"],standard_cylinder_model,cylinder_stretch_model,cylinder_tri_quad_model,mixed_all_model,cyl2_model, fresh_models],["./raw_dataset/cylinder_flow/mixed_all"], animate=False)
 
-models = [["concsum3/checkpoints",{"agg": "concat_sum"}],["sum_01_3/checkpoints",{"agg": "sum", "weight":0.1}],["concat3/checkpoints",{"agg": "concat"}],["standard3/checkpoints",None]]
+# models = [["concsum3/checkpoints",{"agg": "concat_sum"}],["sum_01_3/checkpoints",{"agg": "sum", "weight":0.1}],["concat3/checkpoints",{"agg": "concat"}],["standard3/checkpoints",None]]
+#
+# for model in models:
+#     C = Constants()
+#     C.num_test_time_steps = 2
+#     C.multi_hop_edges = model[1]
+#     pairwise_evaluation([[model[0]]], ["./raw_dataset/cylinder_flow/deepmind"], animate=False, C= C)
 
-for model in models:
+models = ["standard_cylinder3", "stretch1","ctq1","2cyl_1","mixed1"]
+anims = [(models[1],data_paths[2],6) , (models[0],data_paths[0],28), (models[0],data_paths[0],10), (models[0],data_paths[0],1),
+         (models[0],data_paths[0],16), (models[0],data_paths[0],3), (models[1],data_paths[2],15), (models[2],data_paths[3],3), (models[2],data_paths[3],17),
+         (models[3],data_paths[1],4), (models[4],data_paths[4],25), (models[0],data_paths[3],13), (models[0],data_paths[1],10), (models[0],data_paths[2],25)]
+
+for model, data_path, sim in anims:
     C = Constants()
-    C.num_test_time_steps = 2
-    C.multi_hop_edges = model[1]
-    pairwise_evaluation([[model[0]]], ["./raw_dataset/cylinder_flow/deepmind"], animate=False, C= C)
+    C.test_start_sample = sim
+    C.num_test_samples = 1
+    pairwise_evaluation([[model]],[data_path], C=C,animate=True)
