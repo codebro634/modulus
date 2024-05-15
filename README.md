@@ -71,6 +71,8 @@ python data_generation/generator.py --dir <str> --mesh <str> [--t <float> --dt_s
 - `dir`: Name of the dir to save the simulation results into.
 - `mesh`: Path to the mesh, the simulation is supposed to be run on. Can also be a directory. In that case, all meshes within all subfolders of that directory are simulated.
 
+This method saves every 10 simulations into a .npy file. If one wants to merge all of these into a single .npy file then use the provided `merge_simulation_data` method in `dataMerger.py`.
+
 ### Optional parameters
 - `t`: Second till which the flow is simulated. Default: 3.0.
 - `dt_real`: Delta t (step size) in the final dataset. Default: 0.01.
