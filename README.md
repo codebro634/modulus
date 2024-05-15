@@ -73,9 +73,9 @@ python data_generation/generator.py --dir <str> --mesh <str> [--t <float> --dt_s
 
 ### Optional parameters
 - `t`: Second till which the flow is simulated. Default: 3.0.
-- `dt_real`: Delta t in the final dataset. Default: 0.01.
-- `dt_sim`: Base Delta t that is used for calculation. This value adapts with the inflow peak where `dt_sim` is used for an inflow peak of 1.25.  Default: 0.00025.
-- `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (ordering is the lexicographical order of the mesh paths). None, means all meshes are used. If not None, then `mesh_range` has the form <int>,<int>. Default: None.
+- `dt_real`: Delta t (step size) in the final dataset. Default: 0.01.
+- `dt_sim`: Base Delta t (step size) that is used for the under-the-hood calculation. The step size value adapts dynamically with the inflow peak where `dt_sim` is used for an inflow peak of 1.25.  Default: 0.00025.
+- `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (ordering is the lexicographical order of the mesh paths). None, means all meshes are used. If not None, then `mesh_range` has the form '<int>,<int>'. Default: None.
 - `vlevel`: Verbosity level. Min:0, Max:2. Default:1.
 - `cleanup_dir`: If not None, then instead of using `mesh`, the directory  `cleanup_dir` and its subdirectories are searched for files named 'failed_meshes.txt'. These files are assumed to contain paths to meshes. All meshes found this way are used for simulation. Default: None.
 - `num_frames`: If > 0, save animation of simulation as gif with num_frames frames. Default: 0.
