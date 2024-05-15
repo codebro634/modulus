@@ -15,7 +15,7 @@ python cylinder_flow_mgn/main.py --load_name <str> --save_name <str> --data_dir 
 
 - `load_name`: Name of the model to load. If this model is not saved under `checkpoints/` a fresh model is initialized.
 - `save_name`: Under which name the model will be saved. The results/logs/animations will be saved under checkpoints/`save_name`.
-- `data_dir`: Path (relative to examples/cfd/vortex_shedding_mgn) to directory containing the dataset.
+- `data_dir`: Path (relative to cylinder_flow_mgn) to directory containing the dataset.
 - `num_inf_samples`: Number of different simulations used for inference.
 - `num_inf_time_steps`: Number of time steps per simulation used for inference.
 - `num_samples`: Number of different simulations used in training.
@@ -75,7 +75,7 @@ python data_generation/generator.py --dir <str> --mesh <str> [--t <float> --dt_s
 - `t`: Second till which the flow is simulated. Default: 3.0.
 - `dt_real`: Delta t (step size) in the final dataset. Default: 0.01.
 - `dt_sim`: Base Delta t (step size) that is used for the under-the-hood calculation. The step size value adapts dynamically with the inflow peak where `dt_sim` is used for an inflow peak of 1.25.  Default: 0.00025.
-- `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (ordering is the lexicographical order of the mesh paths). None, means all meshes are used. If not None, then `mesh_range` has the form '<int>,<int>'. Default: None.
+- `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (ordering is the lexicographical order of the mesh paths). None, means all meshes are used. If not None, then `mesh_range` has the form 'a,b' where a,b are two integers that specify the lower (inclusive) and upper bound (exclusive) of the mesh range. Default: None.
 - `vlevel`: Verbosity level. Min:0, Max:2. Default:1.
 - `cleanup_dir`: If not None, then instead of using `mesh`, the directory  `cleanup_dir` and its subdirectories are searched for files named 'failed_meshes.txt'. These files are assumed to contain paths to meshes. All meshes found this way are used for simulation. Default: None.
 - `num_frames`: If > 0, save animation of simulation as gif with num_frames frames. Default: 0.
