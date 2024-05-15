@@ -38,7 +38,7 @@ python cylinder_flow_mgn/main.py --load_name <str> --save_name <str> --data_dir 
 - `fresh_optim`: If set, the learning rate scheduler and the optimizer is newly initialized and training will take place for `epochs` epochs even if a checkpoint is loaded.
 
 ### Animations
-Note that by setting only the `eval` flag, it is possible to directly evaluate pretrained models. It is possible to simulate a single simulation from the test split, say the `n`-th simulation by setting `inf_start_sample` = `n` and `num_inf_samples' = `1`.
+Note that by setting only the `eval` flag, it is possible to directly evaluate pretrained models. It is possible to simulate a single simulation from the test split, say the `n`-th simulation by setting `inf_start_sample` = `n` and `num_inf_samples` = `1`.
 
 # Generate meshes
 
@@ -74,8 +74,8 @@ python data_generation/generator.py --dir <str> --mesh <str> [--t <float> --dt_s
 ### Optional parameters
 - `t`: Second till which the flow is simulated. Default: 3.0.
 - `dt_real`: Delta t in the final dataset. Default: 0.01.
-- `dt_sim`: Base Delta t that is used for calculation. This value adapts with the inflow peak and has remains unchanged for 1.25 inflow peak.. Default: 0.00025.
-- `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (order determined by python's os.walk). None, means all meshes are used. Default: None.
+- `dt_sim`: Base Delta t that is used for calculation. This value adapts with the inflow peak where `dt_sim` is used for an inflow peak of 1.25.  Default: 0.00025.
+- `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (ordering is the lexicographical order of the mesh paths). None, means all meshes are used. If not None, then `mesh_range` has the form <int>,<int>. Default: None.
 - `vlevel`: Verbosity level. Min:0, Max:2. Default:1.
 - `cleanup_dir`: If not None, then instead of using `mesh`, the directory  `cleanup_dir` and its subdirectories are searched for files named 'failed_meshes.txt'. These files are assumed to contain paths to meshes. All meshes found this way are used for simulation. Default: None.
 - `num_frames`: If > 0, save animation of simulation as gif with num_frames frames. Default: 0.
