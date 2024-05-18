@@ -15,7 +15,7 @@ python cylinder_flow_mgn/main.py --load_name <str> --save_name <str> --data_dir 
 
 - `load_name`: Name of the model to load. If this model is not saved under `checkpoints/` a fresh model is initialized.
 - `save_name`: Under which name the model will be saved. The results/logs/animations will be saved under checkpoints/`save_name`.
-- `data_dir`: Path (relative to examples/cfd/vortex_shedding_mgn) to directory containing the dataset.
+- `data_dir`: Path (relative to cylinder_flow_mgn) to directory containing the dataset.
 - `num_inf_samples`: Number of different simulations used for inference.
 - `num_inf_time_steps`: Number of time steps per simulation used for inference.
 - `num_samples`: Number of different simulations used in training.
@@ -38,7 +38,7 @@ python cylinder_flow_mgn/main.py --load_name <str> --save_name <str> --data_dir 
 - `fresh_optim`: If set, the learning rate scheduler and the optimizer is newly initialized and training will take place for `epochs` epochs even if a checkpoint is loaded.
 
 ### Animations
-Note that by setting only the `eval` flag, it is possible to directly evaluate pretrained models. It is possible to simulate a single simulation from the test split, say the `n`-th simulation by setting `inf_start_sample` = `n` and `num_inf_samples' = `1`.
+Note that by setting only the `eval` flag, it is possible to directly evaluate pretrained models. It is possible to simulate a single simulation from the test split, say the `n`-th simulation by setting `inf_start_sample` = `n` and `num_inf_samples` = `1`.
 
 # Generate meshes
 
@@ -71,11 +71,13 @@ python data_generation/generator.py --dir <str> --mesh <str> [--t <float> --dt_s
 - `dir`: Name of the dir to save the simulation results into.
 - `mesh`: Path to the mesh, the simulation is supposed to be run on. Can also be a directory. In that case, all meshes within all subfolders of that directory are simulated.
 
+This method saves every 10 simulations into a .npy file. If one wants to merge all of these into a single .npy file, then use the provided `merge_simulation_data` method in `dataMerger.py`.
+
 ### Optional parameters
 - `t`: Second till which the flow is simulated. Default: 3.0.
-- `dt_real`: Delta t in the final dataset. Default: 0.01.
-- `dt_sim`: Base Delta t that is used for calculation. This value adapts with the inflow peak and has remains unchanged for 1.25 inflow peak.. Default: 0.00025.
-- `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (order determined by python's os.walk). None, means all meshes are used. Default: None.
+- `dt_real`: Delta t (step size) in the final dataset. Default: 0.01.
+- `dt_sim`: Base Delta t (step size) that is used for the under-the-hood calculation. The step size value adapts dynamically with the inflow peak where `dt_sim` is used for an inflow peak of 1.25.  Default: 0.00025.
+- `mesh_range`: If `mesh` is a directory, this sets the range of meshes to be used (ordering is the lexicographical order of the mesh paths). None, means all meshes are used. If not None, then `mesh_range` has the form 'a,b' where a,b are two integers that specify the lower (inclusive) and upper bound (exclusive) of the mesh range. Default: None.
 - `vlevel`: Verbosity level. Min:0, Max:2. Default:1.
 - `cleanup_dir`: If not None, then instead of using `mesh`, the directory  `cleanup_dir` and its subdirectories are searched for files named 'failed_meshes.txt'. These files are assumed to contain paths to meshes. All meshes found this way are used for simulation. Default: None.
 - `num_frames`: If > 0, save animation of simulation as gif with num_frames frames. Default: 0.
