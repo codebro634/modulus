@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.11504191.svg)](https://doi.org/10.5281/zenodo.11504191)
 
 # Purpose
 Code for the Master's thesis: "Evaluation and Improvements to Mesh Graph Nets for Computational Fluid Dynamics Simulations."
